@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+/* Deep blue terminal workspace theme */
+:root {
+  --bg-shell: #070b18;
+  --bg-panel: #0d1429;
+  --bg-elevated: #131d36;
+  --bg-input: #101a31;
+  --bg-hover: rgba(152, 173, 255, 0.09);
+  --bg-active: rgba(122, 146, 255, 0.18);
+  --border-subtle: rgba(150, 170, 255, 0.14);
+  --border-default: rgba(150, 170, 255, 0.22);
+  --text-primary: #e8edff;
+  --text-secondary: #b4bfdc;
+  --text-muted: #8593b6;
+  --text-dimmed: #5e6c90;
+  --accent: #86a4ff;
+  --accent-muted: rgba(134, 164, 255, 0.2);
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --error: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  background:
+    radial-gradient(circle at 15% 0%, #162445 0%, transparent 40%),
+    radial-gradient(circle at 85% 100%, #131d39 0%, transparent 45%),
+    var(--bg-shell);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar - minimal */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Focus - subtle */
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Transitions */
+* {
+  transition-property: background-color, border-color, color, opacity, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease;
+}
+
+/* React Grid Layout */
+.react-grid-item {
+  transition: all 200ms ease !important;
+  transition-property: left, top, width, height !important;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform, width, height !important;
+}
+
+.react-grid-item.resizing {
+  z-index: 10;
+  opacity: 0.9;
+}
+
+.react-grid-item.react-draggable-dragging {
+  z-index: 10;
+  opacity: 0.9;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Resize handles */
+.react-resizable-handle {
+  position: absolute;
+  background: transparent;
+}
+
+.react-resizable-handle-se {
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+}
+
+.react-resizable-handle-se::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  opacity: 0.5;
+}
+
+.react-resizable-handle-e {
+  width: 10px;
+  height: calc(100% - 20px);
+  top: 10px;
+  right: 0;
+  cursor: e-resize;
+}
+
+.react-resizable-handle-e::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 30px;
+  border-radius: 2px;
+  background: var(--text-muted);
+  opacity: 0;
+}
+
+.react-resizable-handle-s {
+  width: calc(100% - 20px);
+  height: 10px;
+  bottom: 0;
+  left: 10px;
+  cursor: s-resize;
+}
+
+.react-resizable-handle-s::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--text-muted);
+  opacity: 0;
+}
+
+.react-grid-item:hover .react-resizable-handle::after {
+  opacity: 0.5;
+}
+
+.react-resizable-handle:hover::after {
+  opacity: 1 !important;
+}
+
+/* Resizable Panels */
+.resize-handle-horizontal {
+  width: 8px;
+  background: transparent;
+  cursor: col-resize;
+  transition: background 0.15s;
+}
+
+.resize-handle-horizontal:hover,
+.resize-handle-horizontal[data-resize-handle-active] {
+  background: var(--accent);
+}
+
+.resize-handle-vertical {
+  height: 8px;
+  background: transparent;
+  cursor: row-resize;
+  transition: background 0.15s;
+}
+
+.resize-handle-vertical:hover,
+.resize-handle-vertical[data-resize-handle-active] {
+  background: var(--accent);
+}
+
+/* XTerm styles - ensure terminal fills container */
+.xterm {
+  height: 100% !important;
+  width: 100% !important;
+  padding: 0;
+}
+
+.xterm-viewport {
+  height: 100% !important;
+  width: 100% !important;
+  overflow-y: auto !important;
+  background-color: #10182d !important;
+}
+
+.xterm-screen {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.xterm-rows {
+  position: relative;
+}
