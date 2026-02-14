@@ -8,3 +8,8 @@ src-tauri/gen/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Local planning docs
+design.md
+design_ja.md
+IMPLEMENTATION_PLAN.md
