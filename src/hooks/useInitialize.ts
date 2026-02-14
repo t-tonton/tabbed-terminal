@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAppStore } from '../stores';
 
 export function useInitialize() {
   const workspaces = useAppStore((state) => state.workspaces);
   const createWorkspace = useAppStore((state) => state.createWorkspace);
   const createPane = useAppStore((state) => state.createPane);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
+    if (initializedRef.current) return;
+
     // Create default workspace if none exists
     if (workspaces.length === 0) {
       const workspaceId = createWorkspace('blank', 'Workspace 1');
@@ -14,5 +17,7 @@ export function useInitialize() {
       // Create a default pane
       createPane(workspaceId, { title: 'Pane 1' });
     }
-  }, []); // Only run on mount
+
+    initializedRef.current = true;
+  }, [workspaces.length, createWorkspace, createPane]);
 }
