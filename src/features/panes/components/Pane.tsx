@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '../../../stores';
 import { Terminal } from './Terminal';
 
@@ -23,13 +23,6 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
   const handlePaneClick = () => {
     setFocusedPane(paneId);
   };
-
-  useEffect(() => {
-    if (!editingTitle) {
-      setDraftTitle(title);
-    }
-  }, [title, editingTitle]);
-
   const startTitleEdit = () => {
     setEditingTitle(true);
     setDraftTitle(title);
