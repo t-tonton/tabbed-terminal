@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   web:
-    name: Web (lint + build)
+    name: Web (lint + test + build)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -29,6 +29,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Test
+        run: npm run test
 
       - name: Build
         run: npm run build
