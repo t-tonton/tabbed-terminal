@@ -18,6 +18,24 @@ Branch name examples:
 - Use `.github/pull_request_template.md`.
 - Keep PR small enough to review quickly.
 
+## Local Quality Gates (pre-commit / pre-push)
+Install hooks once after clone:
+
+```bash
+npm run hooks:install
+```
+
+Hook behavior:
+- `pre-commit` runs `npm run check:fast` (`lint + test`)
+- `pre-push` runs `npm run check:full` (`lint + test + build + cargo check`)
+
+You can run them manually:
+
+```bash
+npm run check:fast
+npm run check:full
+```
+
 ## Required Checks Before Merge
 Run these commands locally before opening PR:
 

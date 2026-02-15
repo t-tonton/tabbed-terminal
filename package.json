@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:fast": "npm run lint && npm run test",
+    "check:full": "npm run lint && npm run test && npm run build && cargo check --manifest-path src-tauri/Cargo.toml",
+    "hooks:install": "bash scripts/setup-hooks.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
