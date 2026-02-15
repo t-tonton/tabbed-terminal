@@ -1,0 +1,65 @@
+# Contributing
+
+## Branch Strategy
+- `main`: deployable branch. direct push is not allowed.
+- `feature/*`: new features and test additions.
+- `fix/*`: bug fixes.
+- `chore/*`: non-functional changes (docs, config, CI).
+
+Branch name examples:
+- `feature/test-tabbar-rename`
+- `fix/pane-resize-overlap`
+- `chore/update-release-workflow`
+
+## Pull Request Rules
+- All changes must be merged via PR.
+- 1 PR = 1 logical change (or 1 Issue).
+- Link related issue in PR body (`Closes #...` and note issue URL).
+- Use `.github/pull_request_template.md`.
+- Keep PR small enough to review quickly.
+
+## Required Checks Before Merge
+Run these commands locally before opening PR:
+
+```bash
+npm run lint
+npm run test
+npm run build
+cargo check --manifest-path src-tauri/Cargo.toml
+```
+
+CI must pass on PR:
+- `Web (lint + test + build)`
+- `Tauri (cargo check)`
+
+## Review and Merge Policy
+- At least one reviewer approval is required.
+- Do not merge if unresolved review comments remain.
+- Use `Squash and merge` by default for a clean history.
+
+## Commit Message Convention
+Use concise prefixes:
+- `feat:` feature
+- `fix:` bug fix
+- `test:` tests
+- `chore:` tooling/docs/config
+- `ci:` CI workflow changes
+
+Examples:
+- `test: add Pane rename and close behavior tests`
+- `ci: add release workflow for tag builds`
+
+## Issue Management
+This project tracks planning issues in:
+- `https://github.com/t-tonton/note/issues`
+
+When work is done:
+1. Add `対応PR: <PR URL>` comment to the note issue.
+2. Close the note issue.
+
+## Branch Protection (GitHub Settings)
+For `main`, enable:
+- Require a pull request before merging
+- Require status checks to pass before merging
+- Require approvals
+- Restrict direct pushes
