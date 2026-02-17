@@ -1,0 +1,42 @@
+name: Feature request
+description: Propose a new feature or UX improvement
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please keep scope small and concrete so implementation can be planned as one issue.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What pain point are you facing now?
+      placeholder: Current behavior and why it is insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the expected UX/behavior in detail.
+      placeholder: UI entry point, shortcut, and expected output.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered (optional)
+      placeholder: Any other options you evaluated.
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List checkable conditions.
+      placeholder: |
+        - [ ] Works with multiple panes
+        - [ ] No shortcut conflicts
+        - [ ] Covered by tests
+    validations:
+      required: true
