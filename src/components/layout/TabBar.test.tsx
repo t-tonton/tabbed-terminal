@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { TabBar } from './TabBar';
 import { useAppStore } from '../../stores';
 
@@ -29,10 +29,6 @@ describe('TabBar rename behavior', () => {
       ],
       activeWorkspaceId: 'ws-1',
     });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   it('starts rename on double click', async () => {
@@ -85,19 +81,17 @@ describe('TabBar rename behavior', () => {
     expect(screen.queryByDisplayValue('Workspace 1')).not.toBeInTheDocument();
   });
 
-  it('closes clean workspace without confirmation', async () => {
+  it('closes clean workspace', async () => {
     const user = userEvent.setup();
-    const confirmSpy = vi.spyOn(window, 'confirm');
     render(<TabBar />);
 
     await user.click(screen.getByLabelText('Close Workspace 1'));
 
-    expect(confirmSpy).not.toHaveBeenCalled();
     expect(useAppStore.getState().workspaces).toHaveLength(1);
     expect(useAppStore.getState().workspaces[0].id).toBe('ws-2');
   });
 
-  it('keeps dirty workspace when close is canceled', async () => {
+  it('closes dirty workspace', async () => {
     const user = userEvent.setup();
     useAppStore.setState({
       workspaces: [
@@ -106,12 +100,11 @@ describe('TabBar rename behavior', () => {
       ],
       activeWorkspaceId: 'ws-1',
     });
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<TabBar />);
 
     await user.click(screen.getByLabelText('Close Workspace 1'));
 
-    expect(confirmSpy).toHaveBeenCalledWith('Unsaved changes will be lost. Close anyway?');
-    expect(useAppStore.getState().workspaces).toHaveLength(2);
+    expect(useAppStore.getState().workspaces).toHaveLength(1);
+    expect(useAppStore.getState().workspaces[0].id).toBe('ws-2');
   });
 });

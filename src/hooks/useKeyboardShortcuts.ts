@@ -50,12 +50,6 @@ export function useKeyboardShortcuts() {
       if (isMod && e.key === 'w') {
         e.preventDefault();
         if (activeWorkspaceId) {
-          const workspace = workspaces.find((w) => w.id === activeWorkspaceId);
-          if (workspace?.dirty) {
-            if (!confirm('Unsaved changes will be lost. Close anyway?')) {
-              return;
-            }
-          }
           deleteWorkspace(activeWorkspaceId);
         }
         return;

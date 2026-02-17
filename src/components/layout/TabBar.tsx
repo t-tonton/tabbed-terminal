@@ -16,14 +16,6 @@ export function TabBar() {
   const handleCloseTab = (e: React.MouseEvent, workspaceId: string) => {
     e.stopPropagation();
     e.preventDefault();
-
-    const workspace = workspaces.find((w) => w.id === workspaceId);
-    if (workspace?.dirty) {
-      if (!window.confirm('Unsaved changes will be lost. Close anyway?')) {
-        return;
-      }
-    }
-
     deleteWorkspace(workspaceId);
   };
 
