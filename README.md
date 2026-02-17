@@ -1,6 +1,33 @@
-# tabbed-terminal
+# Tabbed Terminal
 
-Desktop terminal workspace built with Tauri + React.
+A desktop terminal workspace app built with Tauri + React.
+
+## Features
+
+- Multiple workspaces (tabs)
+- Multiple panes per workspace
+- Pane rename / close / resize
+- Native terminal copy & paste (`Cmd/Ctrl + C`, `Cmd/Ctrl + V`)
+- Snippets picker for frequently used commands
+  - Save / edit / delete snippets
+  - Search snippets
+  - Copy command to clipboard
+
+## Shortcuts
+
+- `Cmd/Ctrl + T`: New workspace
+- `Cmd/Ctrl + W`: Close current workspace
+- `Cmd/Ctrl + N`: New pane
+- `Cmd/Ctrl + Shift + P`: Open snippets picker
+- `Cmd/Ctrl + 1..9`: Switch workspace by number
+- `Cmd/Ctrl + Shift + [` / `]`: Previous / next workspace
+- `Cmd/Ctrl + =`, `-`, `0`: Zoom in / out / reset
+
+## Known Limitations
+
+- Snippets picker is currently modal (background is locked while open)
+- Snippets are stored in local browser storage for now
+- Build shows chunk-size warning in Vite output (not a release blocker)
 
 ## Development
 
@@ -15,6 +42,20 @@ npm run tauri dev
 npm run build
 npm run tauri build
 ```
+
+## Quality Gates
+
+```bash
+npm run lint
+npm run test
+npm run build
+cargo check --manifest-path src-tauri/Cargo.toml
+```
+
+## Issue Reporting
+
+- Bugs / requests: https://github.com/t-tonton/tabbed-terminal/issues
+- Release task tracking: https://github.com/t-tonton/note/issues
 
 ## Contribution Guide
 
