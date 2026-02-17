@@ -136,6 +136,28 @@ describe('WorkspaceContainer resize behavior', () => {
     expect(layout.w).toBe(2);
   });
 
+  it('shrinks pane from the left when dragging handle to the right', () => {
+    useAppStore.setState({
+      workspaces: [createWorkspace([createPane('pane-1', { x: 0, y: 0, w: 2, h: 1 })])],
+      activeWorkspaceId: 'ws-1',
+    });
+
+    const { container } = render(<WorkspaceContainer />);
+    setGridRect();
+
+    const leftHandle = container.querySelector('div[style*="cursor: w-resize"]');
+    expect(leftHandle).toBeTruthy();
+
+    fireEvent.mouseDown(leftHandle!);
+    fireEvent.mouseMove(document, { clientX: 180, clientY: 20 });
+    fireEvent.mouseUp(document);
+
+    const layout = useAppStore.getState().workspaces[0].panes[0].layout;
+    expect(layout.x).toBe(1);
+    expect(layout.w).toBe(1);
+  });
+
+
   it('expands pane height when dragging bottom resize handle', () => {
     const { container } = render(<WorkspaceContainer />);
     setGridRect();
