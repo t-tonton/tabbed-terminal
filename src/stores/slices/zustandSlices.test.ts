@@ -23,6 +23,8 @@ beforeEach(() => {
     activeWorkspaceId: null,
     focusedPaneId: null,
     sendingPaneIds: new Set<string>(),
+    terminalHistoryByPane: {},
+    isWorkspaceSearchOpen: false,
   });
 });
 
@@ -61,6 +63,7 @@ describe('panesSlice', () => {
     useAppStore.setState({
       workspaces: [makeWorkspace('ws-1', 'Workspace 1')],
       activeWorkspaceId: 'ws-1',
+      terminalHistoryByPane: {},
     });
   });
 
@@ -114,5 +117,19 @@ describe('panesSlice', () => {
     expect(duplicated).toBeDefined();
     expect(duplicated?.title).toBe('Pane 1 (Copy)');
     expect(duplicated?.messages).toHaveLength(0);
+  });
+
+  it('stores terminal output per pane and clears it when pane is deleted', () => {
+    const paneId = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
+
+    useAppStore.getState().appendTerminalOutput(paneId, 'hello');
+    useAppStore.getState().appendTerminalOutput(paneId, '\nworld');
+
+    expect(useAppStore.getState().terminalHistoryByPane[paneId]).toContain('hello');
+    expect(useAppStore.getState().terminalHistoryByPane[paneId]).toContain('world');
+
+    useAppStore.getState().deletePane('ws-1', paneId);
+
+    expect(useAppStore.getState().terminalHistoryByPane[paneId]).toBeUndefined();
   });
 });

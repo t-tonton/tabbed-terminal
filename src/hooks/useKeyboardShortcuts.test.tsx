@@ -29,6 +29,7 @@ describe('useKeyboardShortcuts', () => {
     useAppStore.setState({
       workspaces: [createWorkspace()],
       activeWorkspaceId: 'ws-1',
+      isWorkspaceSearchOpen: false,
     });
   });
 
@@ -63,5 +64,34 @@ describe('useKeyboardShortcuts', () => {
     expect(listener).toHaveBeenCalledTimes(2);
 
     window.removeEventListener('pane-search-open', listener);
+  });
+
+  it('opens workspace search on Cmd/Ctrl+Shift+F', () => {
+    render(<KeyboardShortcutHarness />);
+
+    const metaEvent = new KeyboardEvent('keydown', {
+      key: 'F',
+      metaKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(metaEvent);
+    expect(metaEvent.defaultPrevented).toBe(true);
+    expect(useAppStore.getState().isWorkspaceSearchOpen).toBe(true);
+
+    useAppStore.setState({ isWorkspaceSearchOpen: false });
+
+    const ctrlEvent = new KeyboardEvent('keydown', {
+      key: 'f',
+      ctrlKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(ctrlEvent);
+
+    expect(ctrlEvent.defaultPrevented).toBe(true);
+    expect(useAppStore.getState().isWorkspaceSearchOpen).toBe(true);
   });
 });

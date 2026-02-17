@@ -22,6 +22,7 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 - `Cmd/Ctrl + N`: 新しいパネル
 - `Cmd/Ctrl + Shift + P`: Snippets Picker を開く
 - `Cmd/Ctrl + F`: フォーカス中のPane内検索
+- `Cmd/Ctrl + Shift + F`: ワークスペース内の全Pane履歴を横断検索
 - `Cmd/Ctrl + 1..9`: 番号でワークスペース切り替え
 - `Cmd/Ctrl + Shift + [` / `]`: 前 / 次のワークスペース
 - `Cmd/Ctrl + =`, `-`, `0`: ズームイン / ズームアウト / リセット

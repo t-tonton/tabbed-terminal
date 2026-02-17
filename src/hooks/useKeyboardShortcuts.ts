@@ -12,6 +12,7 @@ export function useKeyboardShortcuts() {
   const zoomOut = useAppStore((state) => state.zoomOut);
   const resetZoom = useAppStore((state) => state.resetZoom);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
+  const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -21,6 +22,13 @@ export function useKeyboardShortcuts() {
       if (isMod && !e.shiftKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent('pane-search-open'));
+        return;
+      }
+
+      // Cmd/Ctrl+Shift+F: Open workspace-wide search
+      if (isMod && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        openWorkspaceSearch();
         return;
       }
 
@@ -150,5 +158,6 @@ export function useKeyboardShortcuts() {
     zoomOut,
     resetZoom,
     openSnippetPicker,
+    openWorkspaceSearch,
   ]);
 }

@@ -12,10 +12,64 @@ interface TerminalProps {
   onFocus: () => void;
 }
 
+interface PaneSearchOpenPayload {
+  paneId?: string;
+  query?: string;
+}
+
 interface TerminalMatch {
   row: number;
   col: number;
   length: number;
+}
+
+function normalizeTerminalChunk(chunk: string): string {
+  let out = '';
+
+  for (let i = 0; i < chunk.length; i += 1) {
+    const code = chunk.charCodeAt(i);
+
+    // ESC sequence
+    if (code === 27) {
+      const next = chunk[i + 1];
+
+      // CSI: ESC [ ... final-byte
+      if (next === '[') {
+        i += 2;
+        while (i < chunk.length) {
+          const c = chunk.charCodeAt(i);
+          if (c >= 64 && c <= 126) break;
+          i += 1;
+        }
+        continue;
+      }
+
+      // OSC: ESC ] ... BEL or ESC \
+      if (next === ']') {
+        i += 2;
+        while (i < chunk.length) {
+          const c = chunk.charCodeAt(i);
+          if (c === 7) break;
+          if (c === 27 && chunk[i + 1] === '\\') {
+            i += 1;
+            break;
+          }
+          i += 1;
+        }
+        continue;
+      }
+
+      continue;
+    }
+
+    // Drop CR, keep LF/TAB, drop other control chars.
+    if (code === 13 || code === 127) continue;
+    if (code < 32 && code !== 10 && code !== 9) continue;
+
+    out += chunk[i];
+  }
+
+  return out;
 }
 
 export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
@@ -24,13 +78,13 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   const fitAddonRef = useRef<FitAddon | null>(null);
   const ptySpawnedRef = useRef(false);
   const terminalFontSize = useAppStore((state) => state.terminalFontSize);
+  const appendTerminalOutput = useAppStore((state) => state.appendTerminalOutput);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [matchCount, setMatchCount] = useState(0);
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const matchesRef = useRef<TerminalMatch[]>([]);
 
   const syncTerminalSize = useCallback(() => {
     const container = containerRef.current;
@@ -55,7 +109,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
     setSearchQuery('');
     setMatchCount(0);
     setActiveMatchIndex(0);
-    matchesRef.current = [];
     if (terminalRef.current) {
       terminalRef.current.clearSelection();
       terminalRef.current.focus();
@@ -78,7 +131,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       if (!needle) {
         setMatchCount(0);
         setActiveMatchIndex(0);
-        matchesRef.current = [];
         terminal.clearSelection();
         return;
       }
@@ -100,7 +152,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
         }
       }
 
-      matchesRef.current = matches;
       setMatchCount(matches.length);
 
       if (matches.length === 0) {
@@ -125,6 +176,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
     if (!searchQuery) return;
     runSearch(searchQuery, activeMatchIndex - 1);
   }, [activeMatchIndex, runSearch, searchQuery]);
+
   useEffect(() => {
     if (!isSearchOpen) return;
     requestAnimationFrame(() => {
@@ -134,15 +186,27 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   }, [isSearchOpen]);
 
   useEffect(() => {
-    const openSearch = () => {
-      if (!isFocused) return;
+    const openSearch = (event: Event) => {
+      const detail = (event as CustomEvent<PaneSearchOpenPayload>).detail;
+      const targetedPaneId = detail?.paneId;
+      const incomingQuery = detail?.query;
+
+      if (targetedPaneId && targetedPaneId !== paneId) return;
+      if (!targetedPaneId && !isFocused) return;
+
       setIsSearchOpen(true);
-      if (searchQuery) runSearch(searchQuery, 0);
+
+      if (typeof incomingQuery === 'string') {
+        setSearchQuery(incomingQuery);
+        runSearch(incomingQuery, 0);
+      } else if (searchQuery) {
+        runSearch(searchQuery, 0);
+      }
     };
 
     window.addEventListener('pane-search-open', openSearch);
     return () => window.removeEventListener('pane-search-open', openSearch);
-  }, [isFocused, runSearch, searchQuery]);
+  }, [isFocused, paneId, runSearch, searchQuery]);
 
   useEffect(() => {
     if (!containerRef.current || terminalRef.current) return;
@@ -193,6 +257,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
           if (!aborted) {
             terminal.write(event.payload);
             terminal.scrollToBottom();
+            appendTerminalOutput(paneId, normalizeTerminalChunk(event.payload));
           }
         });
 
@@ -259,7 +324,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       terminal.dispose();
       terminalRef.current = null;
     };
-  }, [paneId, syncTerminalSize]);
+  }, [appendTerminalOutput, paneId, syncTerminalSize]);
 
   useEffect(() => {
     if (isFocused && terminalRef.current) {
@@ -298,7 +363,11 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
           <input
             ref={searchInputRef}
             value={searchQuery}
-            onChange={(e) => { const q = e.target.value; setSearchQuery(q); runSearch(q, 0); }}
+            onChange={(e) => {
+              const q = e.target.value;
+              setSearchQuery(q);
+              runSearch(q, 0);
+            }}
             placeholder="Find in pane"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {

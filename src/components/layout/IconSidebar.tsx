@@ -5,6 +5,7 @@ export function IconSidebar() {
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId);
   const createPane = useAppStore((state) => state.createPane);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
+  const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
   const activeWorkspace = useActiveWorkspace();
   const [settingsActive, setSettingsActive] = useState(false);
 
@@ -39,9 +40,9 @@ export function IconSidebar() {
 
       <SidebarButton
         icon={<SearchIcon />}
-        label="Search"
-        onClick={() => {}}
-        disabled
+        label="Workspace Search"
+        shortcut="⌘⇧F"
+        onClick={openWorkspaceSearch}
       />
 
       <SidebarButton
