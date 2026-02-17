@@ -41,6 +41,9 @@ impl PtyManager {
         cmd.env("TERM", "xterm-256color");
         // Disable zsh session management (causes early exit)
         cmd.env("SHELL_SESSIONS_DISABLE", "1");
+        // Explicit UTF-8 locale to reduce encoding mismatches.
+        cmd.env("LANG", "en_US.UTF-8");
+        cmd.env("LC_ALL", "en_US.UTF-8");
         // Set HOME directory
         if let Ok(home) = std::env::var("HOME") {
             cmd.cwd(&home);
@@ -81,16 +84,69 @@ impl PtyManager {
         let id_clone = id.clone();
         thread::spawn(move || {
             let mut buf = [0u8; 4096];
+            let mut pending: Vec<u8> = Vec::new();
+
             loop {
                 match reader.read(&mut buf) {
                     Ok(0) => break,
                     Ok(n) => {
-                        let data = String::from_utf8_lossy(&buf[..n]).to_string();
-                        let _ = app_handle.emit(&format!("pty-output-{}", id_clone), data);
+                        pending.extend_from_slice(&buf[..n]);
+
+                        loop {
+                            match std::str::from_utf8(&pending) {
+                                Ok(text) => {
+                                    if !text.is_empty() {
+                                        let _ = app_handle.emit(
+                                            &format!("pty-output-{}", id_clone),
+                                            text.to_string(),
+                                        );
+                                    }
+                                    pending.clear();
+                                    break;
+                                }
+                                Err(err) => {
+                                    let valid_up_to = err.valid_up_to();
+
+                                    if valid_up_to > 0 {
+                                        if let Ok(valid_text) = std::str::from_utf8(&pending[..valid_up_to]) {
+                                            let _ = app_handle.emit(
+                                                &format!("pty-output-{}", id_clone),
+                                                valid_text.to_string(),
+                                            );
+                                        }
+                                        pending.drain(..valid_up_to);
+                                        continue;
+                                    }
+
+                                    match err.error_len() {
+                                        Some(invalid_len) => {
+                                            let lossy = String::from_utf8_lossy(&pending[..invalid_len])
+                                                .to_string();
+                                            let _ = app_handle.emit(
+                                                &format!("pty-output-{}", id_clone),
+                                                lossy,
+                                            );
+                                            pending.drain(..invalid_len);
+                                            continue;
+                                        }
+                                        None => {
+                                            // Incomplete UTF-8 sequence at the tail.
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                     Err(_) => break,
                 }
             }
+
+            if !pending.is_empty() {
+                let data = String::from_utf8_lossy(&pending).to_string();
+                let _ = app_handle.emit(&format!("pty-output-{}", id_clone), data);
+            }
+
             let _ = app_handle.emit(&format!("pty-exit-{}", id_clone), ());
         });
 
