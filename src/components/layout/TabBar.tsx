@@ -16,7 +16,6 @@ export function TabBar() {
   const handleCloseTab = (e: React.MouseEvent, workspaceId: string) => {
     e.stopPropagation();
     e.preventDefault();
-    // TODO: Add proper confirmation dialog for dirty workspaces
     deleteWorkspace(workspaceId);
   };
 
@@ -152,6 +151,8 @@ export function TabBar() {
             {/* Close button */}
             <button
               onClick={(e) => handleCloseTab(e, workspace.id)}
+              aria-label={`Close ${workspace.name}`}
+              title={`Close ${workspace.name}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -163,7 +164,7 @@ export function TabBar() {
                 backgroundColor: 'transparent',
                 color: 'var(--text-muted)',
                 cursor: 'pointer',
-                opacity: isHovered || isActive ? 1 : 0,
+                opacity: workspace.dirty || isHovered || isActive ? 1 : 0.45,
                 flexShrink: 0,
               }}
               onMouseEnter={(e) => {

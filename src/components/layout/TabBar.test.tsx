@@ -4,7 +4,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { TabBar } from './TabBar';
 import { useAppStore } from '../../stores';
 
-function createWorkspace(id: string, name: string) {
+function createWorkspace(id: string, name: string, dirty = false) {
   const now = new Date().toISOString();
   return {
     id,
@@ -14,7 +14,7 @@ function createWorkspace(id: string, name: string) {
     panes: [],
     layout: { direction: 'horizontal' as const, sizes: [] },
     promptPresets: [],
-    dirty: false,
+    dirty,
     createdAt: now,
     updatedAt: now,
   };
@@ -79,5 +79,32 @@ describe('TabBar rename behavior', () => {
 
     expect(useAppStore.getState().workspaces[0].name).toBe('Workspace 1');
     expect(screen.queryByDisplayValue('Workspace 1')).not.toBeInTheDocument();
+  });
+
+  it('closes clean workspace', async () => {
+    const user = userEvent.setup();
+    render(<TabBar />);
+
+    await user.click(screen.getByLabelText('Close Workspace 1'));
+
+    expect(useAppStore.getState().workspaces).toHaveLength(1);
+    expect(useAppStore.getState().workspaces[0].id).toBe('ws-2');
+  });
+
+  it('closes dirty workspace', async () => {
+    const user = userEvent.setup();
+    useAppStore.setState({
+      workspaces: [
+        createWorkspace('ws-1', 'Workspace 1', true),
+        createWorkspace('ws-2', 'Workspace 2'),
+      ],
+      activeWorkspaceId: 'ws-1',
+    });
+    render(<TabBar />);
+
+    await user.click(screen.getByLabelText('Close Workspace 1'));
+
+    expect(useAppStore.getState().workspaces).toHaveLength(1);
+    expect(useAppStore.getState().workspaces[0].id).toBe('ws-2');
   });
 });
