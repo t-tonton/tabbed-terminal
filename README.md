@@ -54,8 +54,8 @@ cargo check --manifest-path src-tauri/Cargo.toml
 
 ## Issue Reporting
 
-- Bugs / requests: https://github.com/t-tonton/tabbed-terminal/issues
-- Release task tracking: https://github.com/t-tonton/note/issues
+- Public bugs / feature requests will be managed in this repository.
+- During the internal phase, release task tracking is managed separately.
 
 ## Contribution Guide
 
