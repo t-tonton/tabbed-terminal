@@ -11,10 +11,18 @@ export function useKeyboardShortcuts() {
   const zoomIn = useAppStore((state) => state.zoomIn);
   const zoomOut = useAppStore((state) => state.zoomOut);
   const resetZoom = useAppStore((state) => state.resetZoom);
+  const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey;
+
+      // Cmd+Shift+P: Open snippet picker
+      if (isMod && e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        openSnippetPicker();
+        return;
+      }
 
       // Cmd+T: New workspace tab
       if (isMod && e.key === 't') {
@@ -43,10 +51,9 @@ export function useKeyboardShortcuts() {
         e.preventDefault();
         if (activeWorkspaceId) {
           const workspace = workspaces.find((w) => w.id === activeWorkspaceId);
-          const newPaneId = createPane(activeWorkspaceId, {
+          createPane(activeWorkspaceId, {
             title: `Pane ${(workspace?.panes.length ?? 0) + 1}`,
           });
-          console.log('[useKeyboardShortcuts] Created pane:', newPaneId, 'total:', (workspace?.panes.length ?? 0) + 1);
         }
         return;
       }
@@ -82,7 +89,7 @@ export function useKeyboardShortcuts() {
       // Cmd+1-9: Switch to tab by number
       if (isMod && e.key >= '1' && e.key <= '9') {
         e.preventDefault();
-        const index = parseInt(e.key) - 1;
+        const index = parseInt(e.key, 10) - 1;
         if (index < workspaces.length) {
           setActiveWorkspace(workspaces[index].id);
         }
@@ -107,7 +114,6 @@ export function useKeyboardShortcuts() {
       if (isMod && e.key === '0') {
         e.preventDefault();
         resetZoom();
-        return;
       }
     };
 
@@ -126,5 +132,16 @@ export function useKeyboardShortcuts() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [workspaces, activeWorkspaceId, setActiveWorkspace, createWorkspace, deleteWorkspace, createPane, zoomIn, zoomOut, resetZoom]);
+  }, [
+    workspaces,
+    activeWorkspaceId,
+    setActiveWorkspace,
+    createWorkspace,
+    deleteWorkspace,
+    createPane,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    openSnippetPicker,
+  ]);
 }

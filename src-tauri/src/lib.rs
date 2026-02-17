@@ -4,6 +4,8 @@ use pty::PtyManager;
 use std::fs::OpenOptions;
 use std::io::Write as _;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
+use tauri::Emitter;
 
 fn append_lifecycle_log(message: &str) {
     let ts = SystemTime::now()
@@ -63,6 +65,15 @@ pub fn run() {
             pty::pty_kill,
         ])
         .setup(|app| {
+            let snippets_item = MenuItemBuilder::with_id("open_snippets", "Snippets")
+                .accelerator("CmdOrCtrl+Shift+P")
+                .build(app)?;
+            let tools_menu = SubmenuBuilder::new(app, "Tools")
+                .item(&snippets_item)
+                .build()?;
+            let menu = MenuBuilder::new(app).item(&tools_menu).build()?;
+            app.set_menu(menu)?;
+
             if cfg!(debug_assertions) {
                 append_lifecycle_log("setup() in debug mode");
                 app.handle().plugin(
@@ -72,6 +83,11 @@ pub fn run() {
                 )?;
             }
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "open_snippets" {
+                let _ = app.emit("menu-open-snippets", ());
+            }
         })
         .run(tauri::generate_context!());
 
