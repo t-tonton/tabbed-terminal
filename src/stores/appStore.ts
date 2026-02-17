@@ -4,8 +4,9 @@ import { createWorkspacesSlice, type WorkspacesSlice } from './slices/workspaces
 import { createPanesSlice, type PanesSlice } from './slices/panesSlice';
 import { createLayoutSlice, type LayoutSlice } from './slices/layoutSlice';
 import { createSettingsSlice, type SettingsSlice } from './slices/settingsSlice';
+import { createSnippetsSlice, type SnippetsSlice } from './slices/snippetsSlice';
 
-export type AppStore = WorkspacesSlice & PanesSlice & LayoutSlice & SettingsSlice;
+export type AppStore = WorkspacesSlice & PanesSlice & LayoutSlice & SettingsSlice & SnippetsSlice;
 
 export const useAppStore = create<AppStore>()(
   devtools(
@@ -14,8 +15,9 @@ export const useAppStore = create<AppStore>()(
       ...createPanesSlice(...args),
       ...createLayoutSlice(...args),
       ...createSettingsSlice(...args),
+      ...createSnippetsSlice(...args),
     }),
-    { name: 'AgentTabStore' }
+    { name: 'TabbedTerminalStore' }
   )
 );
 

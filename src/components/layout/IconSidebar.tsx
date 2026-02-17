@@ -4,6 +4,7 @@ import { useAppStore, useActiveWorkspace } from '../../stores';
 export function IconSidebar() {
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId);
   const createPane = useAppStore((state) => state.createPane);
+  const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
   const activeWorkspace = useActiveWorkspace();
   const [settingsActive, setSettingsActive] = useState(false);
 
@@ -29,7 +30,6 @@ export function IconSidebar() {
         borderRight: '1px solid var(--border-subtle)',
       }}
     >
-      {/* Files */}
       <SidebarButton
         icon={<FilesIcon />}
         label="Explorer"
@@ -37,7 +37,6 @@ export function IconSidebar() {
         disabled
       />
 
-      {/* Search */}
       <SidebarButton
         icon={<SearchIcon />}
         label="Search"
@@ -45,7 +44,6 @@ export function IconSidebar() {
         disabled
       />
 
-      {/* Git */}
       <SidebarButton
         icon={<GitIcon />}
         label="Source Control"
@@ -53,10 +51,8 @@ export function IconSidebar() {
         disabled
       />
 
-      {/* Divider */}
       <div style={{ height: '1px', width: '24px', backgroundColor: 'var(--border-subtle)', margin: '8px 0' }} />
 
-      {/* New pane */}
       <SidebarButton
         icon={<PlusIcon />}
         label="New Pane"
@@ -65,7 +61,13 @@ export function IconSidebar() {
         disabled={!activeWorkspaceId}
       />
 
-      {/* Terminal */}
+      <SidebarButton
+        icon={<SnippetsIcon />}
+        label="Snippets"
+        shortcut="⌘⇧P"
+        onClick={openSnippetPicker}
+      />
+
       <SidebarButton
         icon={<TerminalIcon />}
         label="Terminal"
@@ -75,7 +77,6 @@ export function IconSidebar() {
 
       <div style={{ flex: 1 }} />
 
-      {/* API */}
       <SidebarButton
         icon={<ApiIcon />}
         label="API Settings"
@@ -83,7 +84,6 @@ export function IconSidebar() {
         disabled
       />
 
-      {/* Settings */}
       <SidebarButton
         icon={<SettingsIcon />}
         label="Settings"
@@ -180,6 +180,17 @@ function TerminalIcon() {
       <rect x="2.5" y="3.5" width="13" height="11" rx="2" />
       <path d="M5.5 7l2 2-2 2" />
       <path d="M9.5 11h3" />
+    </svg>
+  );
+}
+
+function SnippetsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="12" height="12" rx="2" />
+      <path d="M6 7h6" />
+      <path d="M6 10h6" />
+      <path d="M6 13h4" />
     </svg>
   );
 }
