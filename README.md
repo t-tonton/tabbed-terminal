@@ -2,6 +2,8 @@
 
 A desktop terminal workspace app built with Tauri + React.
 
+[日本語版 README](README.ja.md)
+
 ## Features
 
 - Multiple workspaces (tabs)
