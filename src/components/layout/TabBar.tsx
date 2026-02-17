@@ -172,7 +172,7 @@ export function TabBar() {
                 backgroundColor: 'transparent',
                 color: 'var(--text-muted)',
                 cursor: 'pointer',
-                opacity: isHovered || isActive ? 1 : 0,
+                opacity: workspace.dirty || isHovered || isActive ? 1 : 0.45,
                 flexShrink: 0,
               }}
               onMouseEnter={(e) => {
