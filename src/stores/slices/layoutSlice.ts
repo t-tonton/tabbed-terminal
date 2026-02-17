@@ -8,6 +8,7 @@ export interface LayoutSlice {
   isNewPaneModalOpen: boolean;
   isPaneSwitcherOpen: boolean;
   isSnippetPickerOpen: boolean;
+  isWorkspaceSearchOpen: boolean;
   editingPaneId: string | null;
 
   // Actions
@@ -23,6 +24,8 @@ export interface LayoutSlice {
   closePaneEditor: () => void;
   openSnippetPicker: () => void;
   closeSnippetPicker: () => void;
+  openWorkspaceSearch: () => void;
+  closeWorkspaceSearch: () => void;
 }
 
 export const createLayoutSlice: StateCreator<
@@ -36,6 +39,7 @@ export const createLayoutSlice: StateCreator<
   isNewPaneModalOpen: false,
   isPaneSwitcherOpen: false,
   isSnippetPickerOpen: false,
+  isWorkspaceSearchOpen: false,
   editingPaneId: null,
 
   toggleSideDrawer: () => {
@@ -84,5 +88,13 @@ export const createLayoutSlice: StateCreator<
 
   closeSnippetPicker: () => {
     set({ isSnippetPickerOpen: false });
+  },
+
+  openWorkspaceSearch: () => {
+    set({ isWorkspaceSearchOpen: true });
+  },
+
+  closeWorkspaceSearch: () => {
+    set({ isWorkspaceSearchOpen: false });
   },
 });

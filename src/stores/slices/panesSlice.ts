@@ -3,9 +3,12 @@ import type { Pane, CreatePaneOptions, Message, PaneLayout } from '../../types';
 import { generateId, DEFAULT_MODEL_CONFIG } from '../../utils';
 import type { AppStore } from '../appStore';
 
+const TERMINAL_HISTORY_LIMIT = 240000;
+
 export interface PanesSlice {
   focusedPaneId: string | null;
   sendingPaneIds: Set<string>;
+  terminalHistoryByPane: Record<string, string>;
 
   // Actions
   createPane: (workspaceId: string, options?: CreatePaneOptions) => string;
@@ -15,6 +18,10 @@ export interface PanesSlice {
   clearPane: (workspaceId: string, paneId: string) => void;
   updatePaneLayouts: (workspaceId: string, layouts: { id: string; layout: PaneLayout }[]) => void;
   reorderPanes: (workspaceId: string, oldIndex: number, newIndex: number) => void;
+
+  // Terminal history
+  appendTerminalOutput: (paneId: string, chunk: string) => void;
+  clearTerminalHistory: (paneId: string) => void;
 
   // Messages
   addMessage: (workspaceId: string, paneId: string, message: Message) => void;
@@ -36,6 +43,7 @@ export const createPanesSlice: StateCreator<
 > = (set, get) => ({
   focusedPaneId: null,
   sendingPaneIds: new Set(),
+  terminalHistoryByPane: {},
 
   createPane: (workspaceId, options = {}) => {
     const id = generateId();
@@ -97,14 +105,20 @@ export const createPanesSlice: StateCreator<
   },
 
   deletePane: (workspaceId, paneId) => {
-    set((state) => ({
-      workspaces: state.workspaces.map((w) =>
-        w.id === workspaceId
-          ? { ...w, panes: w.panes.filter((p) => p.id !== paneId), dirty: true }
-          : w
-      ),
-      focusedPaneId: state.focusedPaneId === paneId ? null : state.focusedPaneId,
-    }));
+    set((state) => {
+      const nextHistory = { ...state.terminalHistoryByPane };
+      delete nextHistory[paneId];
+
+      return {
+        workspaces: state.workspaces.map((w) =>
+          w.id === workspaceId
+            ? { ...w, panes: w.panes.filter((p) => p.id !== paneId), dirty: true }
+            : w
+        ),
+        focusedPaneId: state.focusedPaneId === paneId ? null : state.focusedPaneId,
+        terminalHistoryByPane: nextHistory,
+      };
+    });
   },
 
   duplicatePane: (workspaceId, paneId) => {
@@ -231,6 +245,35 @@ export const createPanesSlice: StateCreator<
     }));
   },
 
+  appendTerminalOutput: (paneId, chunk) => {
+    if (!chunk) return;
+
+    set((state) => {
+      const prev = state.terminalHistoryByPane[paneId] ?? '';
+      const appended = `${prev}${chunk}`;
+      const next =
+        appended.length > TERMINAL_HISTORY_LIMIT
+          ? appended.slice(appended.length - TERMINAL_HISTORY_LIMIT)
+          : appended;
+
+      return {
+        terminalHistoryByPane: {
+          ...state.terminalHistoryByPane,
+          [paneId]: next,
+        },
+      };
+    });
+  },
+
+  clearTerminalHistory: (paneId) => {
+    set((state) => {
+      if (!state.terminalHistoryByPane[paneId]) return state;
+      const nextHistory = { ...state.terminalHistoryByPane };
+      delete nextHistory[paneId];
+      return { terminalHistoryByPane: nextHistory };
+    });
+  },
+
   addMessage: (workspaceId, paneId, message) => {
     set((state) => ({
       workspaces: state.workspaces.map((w) =>
@@ -266,12 +309,15 @@ export const createPanesSlice: StateCreator<
   },
 
   getPane: (workspaceId, paneId) => {
-    const workspace = get().workspaces.find((w) => w.id === workspaceId);
-    return workspace?.panes.find((p) => p.id === paneId);
+    return get()
+      .workspaces.find((w) => w.id === workspaceId)
+      ?.panes.find((p) => p.id === paneId);
   },
 
   getActiveWorkspacePanes: () => {
-    const { workspaces, activeWorkspaceId } = get();
-    return workspaces.find((w) => w.id === activeWorkspaceId)?.panes ?? [];
+    const activeId = get().activeWorkspaceId;
+    if (!activeId) return [];
+
+    return get().workspaces.find((w) => w.id === activeId)?.panes || [];
   },
 });
