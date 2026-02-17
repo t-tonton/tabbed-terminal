@@ -304,23 +304,29 @@ export function WorkspaceContainer() {
         const targetX = Math.max(0, Math.min(fixedRight - 1, mouseCol));
         let resolvedX = startLayout.x;
 
-        for (let candidateX = targetX; candidateX <= startLayout.x; candidateX++) {
-          const candidateW = fixedRight - candidateX;
-          const overlaps = otherPanes.some((pane) => {
-            const pRight = pane.layout.x + pane.layout.w;
-            const pBottom = pane.layout.y + pane.layout.h;
-            const cRight = candidateX + candidateW;
-            const cBottom = startLayout.y + startLayout.h;
-            return !(
-              candidateX >= pRight ||
-              cRight <= pane.layout.x ||
-              startLayout.y >= pBottom ||
-              cBottom <= pane.layout.y
-            );
-          });
-          if (!overlaps) {
-            resolvedX = candidateX;
-            break;
+        // Moving the left edge to the right is always a shrink inside current bounds.
+        if (targetX >= startLayout.x) {
+          resolvedX = targetX;
+        } else {
+          // Moving left may collide with other panes, so find the first non-overlapping position.
+          for (let candidateX = targetX; candidateX <= startLayout.x; candidateX++) {
+            const candidateW = fixedRight - candidateX;
+            const overlaps = otherPanes.some((pane) => {
+              const pRight = pane.layout.x + pane.layout.w;
+              const pBottom = pane.layout.y + pane.layout.h;
+              const cRight = candidateX + candidateW;
+              const cBottom = startLayout.y + startLayout.h;
+              return !(
+                candidateX >= pRight ||
+                cRight <= pane.layout.x ||
+                startLayout.y >= pBottom ||
+                cBottom <= pane.layout.y
+              );
+            });
+            if (!overlaps) {
+              resolvedX = candidateX;
+              break;
+            }
           }
         }
 
