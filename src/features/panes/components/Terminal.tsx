@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { invoke } from '@tauri-apps/api/core';
@@ -12,12 +12,25 @@ interface TerminalProps {
   onFocus: () => void;
 }
 
+interface TerminalMatch {
+  row: number;
+  col: number;
+  length: number;
+}
+
 export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const ptySpawnedRef = useRef(false);
   const terminalFontSize = useAppStore((state) => state.terminalFontSize);
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [matchCount, setMatchCount] = useState(0);
+  const [activeMatchIndex, setActiveMatchIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const matchesRef = useRef<TerminalMatch[]>([]);
 
   const syncTerminalSize = useCallback(() => {
     const container = containerRef.current;
@@ -36,6 +49,100 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       invoke('pty_resize', { id: paneId, rows, cols }).catch(() => {});
     }
   }, [paneId]);
+
+  const closeSearch = useCallback(() => {
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setMatchCount(0);
+    setActiveMatchIndex(0);
+    matchesRef.current = [];
+    if (terminalRef.current) {
+      terminalRef.current.clearSelection();
+      terminalRef.current.focus();
+    }
+  }, []);
+
+  const revealMatch = useCallback((match: TerminalMatch) => {
+    const terminal = terminalRef.current;
+    if (!terminal) return;
+    terminal.select(match.col, match.row, match.length);
+    terminal.scrollToLine(match.row);
+  }, []);
+
+  const runSearch = useCallback(
+    (query: string, desiredIndex: number) => {
+      const terminal = terminalRef.current;
+      if (!terminal) return;
+
+      const needle = query.toLowerCase();
+      if (!needle) {
+        setMatchCount(0);
+        setActiveMatchIndex(0);
+        matchesRef.current = [];
+        terminal.clearSelection();
+        return;
+      }
+
+      const buffer = terminal.buffer.active;
+      const matches: TerminalMatch[] = [];
+      for (let row = 0; row < buffer.length; row += 1) {
+        const line = buffer.getLine(row);
+        if (!line) continue;
+
+        const text = line.translateToString(true);
+        const lower = text.toLowerCase();
+        let cursor = 0;
+        while (cursor <= lower.length - needle.length) {
+          const found = lower.indexOf(needle, cursor);
+          if (found === -1) break;
+          matches.push({ row, col: found, length: query.length });
+          cursor = found + Math.max(query.length, 1);
+        }
+      }
+
+      matchesRef.current = matches;
+      setMatchCount(matches.length);
+
+      if (matches.length === 0) {
+        setActiveMatchIndex(0);
+        terminal.clearSelection();
+        return;
+      }
+
+      const normalized = ((desiredIndex % matches.length) + matches.length) % matches.length;
+      revealMatch(matches[normalized]);
+      setActiveMatchIndex(normalized);
+    },
+    [revealMatch],
+  );
+
+  const nextMatch = useCallback(() => {
+    if (!searchQuery) return;
+    runSearch(searchQuery, activeMatchIndex + 1);
+  }, [activeMatchIndex, runSearch, searchQuery]);
+
+  const prevMatch = useCallback(() => {
+    if (!searchQuery) return;
+    runSearch(searchQuery, activeMatchIndex - 1);
+  }, [activeMatchIndex, runSearch, searchQuery]);
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    });
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    const openSearch = () => {
+      if (!isFocused) return;
+      setIsSearchOpen(true);
+      if (searchQuery) runSearch(searchQuery, 0);
+    };
+
+    window.addEventListener('pane-search-open', openSearch);
+    return () => window.removeEventListener('pane-search-open', openSearch);
+  }, [isFocused, runSearch, searchQuery]);
 
   useEffect(() => {
     if (!containerRef.current || terminalRef.current) return;
@@ -68,7 +175,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
-    // Retry initial fit because layout/font timing can transiently produce tiny column counts
     setTimeout(() => {
       if (!aborted) syncTerminalSize();
     }, 60);
@@ -79,16 +185,13 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       if (!aborted) syncTerminalSize();
     }, 600);
 
-    // Setup PTY
     const setupPty = async () => {
       if (ptySpawnedRef.current || aborted) return;
 
       try {
-        // Listen for PTY output
         unlistenOutput = await listen<string>(`pty-output-${paneId}`, (event) => {
           if (!aborted) {
             terminal.write(event.payload);
-            // Auto-scroll to bottom
             terminal.scrollToBottom();
           }
         });
@@ -98,7 +201,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
           return;
         }
 
-        // Listen for PTY exit
         unlistenExit = await listen(`pty-exit-${paneId}`, () => {
           if (!aborted) terminal.writeln('\r\n\x1b[1;31m[Process exited]\x1b[0m');
         });
@@ -109,7 +211,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
           return;
         }
 
-        // Spawn PTY
         await invoke('pty_spawn', { id: paneId });
 
         if (aborted) {
@@ -119,7 +220,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
 
         ptySpawnedRef.current = true;
 
-        // Handle terminal input -> PTY
         terminal.onData((data) => {
           if (!aborted) {
             invoke('pty_write', { id: paneId, data }).catch(console.error);
@@ -135,7 +235,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
 
     setupPty();
 
-    // Handle resize with debounce
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
     const doFit = () => syncTerminalSize();
 
@@ -143,7 +242,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       if (resizeTimeout) clearTimeout(resizeTimeout);
       resizeTimeout = setTimeout(() => {
         doFit();
-        // Call fit again after a short delay to handle layout settling
         setTimeout(doFit, 50);
       }, 16);
     });
@@ -154,7 +252,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       resizeObserver.disconnect();
       unlistenOutput?.();
       unlistenExit?.();
-      // Only kill PTY if it was successfully spawned
       if (ptySpawnedRef.current) {
         invoke('pty_kill', { id: paneId }).catch(() => {});
         ptySpawnedRef.current = false;
@@ -171,7 +268,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
     }
   }, [isFocused, syncTerminalSize]);
 
-  // Update font size when it changes
   useEffect(() => {
     if (terminalRef.current && fitAddonRef.current) {
       terminalRef.current.options.fontSize = terminalFontSize;
@@ -180,17 +276,121 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   }, [terminalFontSize, syncTerminalSize]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        height: '100%',
-        width: '100%',
-        minHeight: 0,
-        backgroundColor: '#10182d',
-        borderTop: '1px solid rgba(150, 170, 255, 0.08)',
-        overflow: 'hidden',
-      }}
-      onClick={onFocus}
-    />
+    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
+      {isSearchOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '8px',
+            zIndex: 30,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px',
+            borderRadius: '6px',
+            border: '1px solid var(--border-default)',
+            background: 'rgba(14, 22, 45, 0.96)',
+            boxShadow: '0 4px 18px rgba(0, 0, 0, 0.35)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            ref={searchInputRef}
+            value={searchQuery}
+            onChange={(e) => { const q = e.target.value; setSearchQuery(q); runSearch(q, 0); }}
+            placeholder="Find in pane"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                  prevMatch();
+                } else {
+                  nextMatch();
+                }
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                closeSearch();
+              }
+            }}
+            style={{
+              width: '170px',
+              height: '26px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-default)',
+              backgroundColor: 'var(--bg-input)',
+              color: 'var(--text-primary)',
+              fontSize: '12px',
+              padding: '0 8px',
+              outline: 'none',
+            }}
+          />
+          <span style={{ minWidth: '48px', textAlign: 'right', fontSize: '11px', color: 'var(--text-muted)' }}>
+            {matchCount === 0 ? '0/0' : `${activeMatchIndex + 1}/${matchCount}`}
+          </span>
+          <button
+            type="button"
+            onClick={prevMatch}
+            title="Previous match"
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-default)',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+            }}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            onClick={nextMatch}
+            title="Next match"
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-default)',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+            }}
+          >
+            ↓
+          </button>
+          <button
+            type="button"
+            onClick={closeSearch}
+            title="Close search"
+            style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '4px',
+              border: '1px solid var(--border-default)',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        style={{
+          height: '100%',
+          width: '100%',
+          minHeight: 0,
+          backgroundColor: '#10182d',
+          borderTop: '1px solid rgba(150, 170, 255, 0.08)',
+          overflow: 'hidden',
+        }}
+        onClick={onFocus}
+      />
+    </div>
   );
 }

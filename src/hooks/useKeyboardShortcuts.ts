@@ -17,6 +17,13 @@ export function useKeyboardShortcuts() {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey;
 
+      // Cmd/Ctrl+F: Open in-pane terminal search
+      if (isMod && !e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('pane-search-open'));
+        return;
+      }
+
       // Cmd+Shift+P: Open snippet picker
       if (isMod && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();

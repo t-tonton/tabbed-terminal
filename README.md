@@ -21,6 +21,7 @@ A desktop terminal workspace app built with Tauri + React.
 - `Cmd/Ctrl + W`: Close current workspace
 - `Cmd/Ctrl + N`: New pane
 - `Cmd/Ctrl + Shift + P`: Open snippets picker
+- `Cmd/Ctrl + F`: Find in focused pane
 - `Cmd/Ctrl + 1..9`: Switch workspace by number
 - `Cmd/Ctrl + Shift + [` / `]`: Previous / next workspace
 - `Cmd/Ctrl + =`, `-`, `0`: Zoom in / out / reset
