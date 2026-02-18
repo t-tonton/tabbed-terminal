@@ -2,7 +2,7 @@ name: Feature request
 description: Propose a new feature or UX improvement
 title: "feat: "
 labels:
-  - enhancement
+  - feature
 body:
   - type: markdown
     attributes:
