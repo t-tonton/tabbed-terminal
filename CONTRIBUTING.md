@@ -16,6 +16,8 @@ Branch name examples:
 - 1 PR = 1 logical change (or 1 Issue).
 - Link related issue in PR body (`Closes #...` and note issue URL).
 - Use `.github/pull_request_template.md`.
+- Set exactly one release label on every PR:
+  - `release:major` / `release:minor` / `release:patch`
 - Keep PR small enough to review quickly.
 
 ## Local Quality Gates (pre-commit / pre-push)
@@ -49,6 +51,14 @@ cargo check --manifest-path src-tauri/Cargo.toml
 CI must pass on PR:
 - `Web (lint + test + build)`
 - `Tauri (cargo check)`
+- `Require release:* label` (exactly one required)
+
+## Release Draft Automation
+- Release draft is auto-updated by `.github/workflows/release-drafter.yml` on:
+  - push to `main`
+  - PR label/content updates
+- Version bump priority is:
+  - `release:major` > `release:minor` > `release:patch`
 
 ## Review and Merge Policy
 - At least one reviewer approval is required.
