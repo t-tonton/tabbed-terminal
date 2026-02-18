@@ -56,6 +56,23 @@ describe('workspacesSlice', () => {
     expect(nextState.workspaces[0].id).toBe('ws-1');
     expect(nextState.activeWorkspaceId).toBe('ws-1');
   });
+
+  it('reorders workspaces by index', () => {
+    useAppStore.setState({
+      workspaces: [
+        makeWorkspace('ws-1', 'Workspace 1'),
+        makeWorkspace('ws-2', 'Workspace 2'),
+        makeWorkspace('ws-3', 'Workspace 3'),
+      ],
+      activeWorkspaceId: 'ws-2',
+    });
+
+    useAppStore.getState().reorderWorkspaces(0, 2);
+
+    const nextState = useAppStore.getState();
+    expect(nextState.workspaces.map((w) => w.id)).toEqual(['ws-2', 'ws-3', 'ws-1']);
+    expect(nextState.activeWorkspaceId).toBe('ws-2');
+  });
 });
 
 describe('panesSlice', () => {

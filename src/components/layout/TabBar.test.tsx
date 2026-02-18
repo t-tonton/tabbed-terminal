@@ -107,4 +107,5 @@ describe('TabBar rename behavior', () => {
     expect(useAppStore.getState().workspaces).toHaveLength(1);
     expect(useAppStore.getState().workspaces[0].id).toBe('ws-2');
   });
+
 });

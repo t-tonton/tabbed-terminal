@@ -7,6 +7,7 @@ A desktop terminal workspace app built with Tauri + React.
 ## Features
 
 - Multiple workspaces (tabs)
+- Reorder workspace tabs with drag and drop
 - Multiple panes per workspace
 - Pane rename / close / resize
 - Native terminal copy & paste (`Cmd/Ctrl + C`, `Cmd/Ctrl + V`)
@@ -30,6 +31,7 @@ A desktop terminal workspace app built with Tauri + React.
 
 ## Known Limitations
 
+- Sidebar currently shows only active features (search / new pane / snippets)
 - Snippets picker is currently modal (background is locked while open)
 - Snippets are stored in local browser storage for now
 - Workspace save/restore currently uses local storage (Tauri fs persistence is planned)
