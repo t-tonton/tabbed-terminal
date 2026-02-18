@@ -1,14 +1,26 @@
 import { useEffect, useRef } from 'react';
+import { loadWorkspaceSnapshot } from '../services/persistence';
 import { useAppStore } from '../stores';
 
 export function useInitialize() {
   const workspaces = useAppStore((state) => state.workspaces);
   const createWorkspace = useAppStore((state) => state.createWorkspace);
   const createPane = useAppStore((state) => state.createPane);
+  const markClean = useAppStore((state) => state.markClean);
   const initializedRef = useRef(false);
 
   useEffect(() => {
     if (initializedRef.current) return;
+
+    const snapshot = loadWorkspaceSnapshot();
+    if (snapshot && snapshot.workspaces.length > 0) {
+      useAppStore.setState({
+        workspaces: snapshot.workspaces,
+        activeWorkspaceId: snapshot.activeWorkspaceId,
+      });
+      initializedRef.current = true;
+      return;
+    }
 
     // Create default workspace if none exists
     if (workspaces.length === 0) {
@@ -16,8 +28,9 @@ export function useInitialize() {
 
       // Create a default pane
       createPane(workspaceId, { title: 'Pane 1' });
+      markClean(workspaceId);
     }
 
     initializedRef.current = true;
-  }, [workspaces.length, createWorkspace, createPane]);
+  }, [workspaces.length, createWorkspace, createPane, markClean]);
 }

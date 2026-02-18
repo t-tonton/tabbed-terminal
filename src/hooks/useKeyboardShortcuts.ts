@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { saveWorkspaceSnapshot } from '../services/persistence';
 import { useAppStore } from '../stores';
 
 export function useKeyboardShortcuts() {
@@ -13,6 +14,7 @@ export function useKeyboardShortcuts() {
   const resetZoom = useAppStore((state) => state.resetZoom);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
   const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
+  const markClean = useAppStore((state) => state.markClean);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -63,6 +65,27 @@ export function useKeyboardShortcuts() {
           createPane(activeWorkspaceId, {
             title: `Pane ${(workspace?.panes.length ?? 0) + 1}`,
           });
+        }
+        return;
+      }
+
+      // Cmd/Ctrl+S: Save workspace snapshot
+      if (isMod && e.key === 's') {
+        e.preventDefault();
+        const workspacesToSave = workspaces.map((workspace) => ({
+          ...workspace,
+          dirty: false,
+        }));
+        const saved = saveWorkspaceSnapshot({
+          workspaces: workspacesToSave,
+          activeWorkspaceId,
+        });
+        if (saved) {
+          for (const workspace of workspaces) {
+            if (workspace.dirty) {
+              markClean(workspace.id);
+            }
+          }
         }
         return;
       }
@@ -153,5 +176,6 @@ export function useKeyboardShortcuts() {
     resetZoom,
     openSnippetPicker,
     openWorkspaceSearch,
+    markClean,
   ]);
 }
