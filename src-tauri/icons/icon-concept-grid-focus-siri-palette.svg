@@ -1,0 +1,35 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="72" y1="64" x2="440" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F5C243"/>
+      <stop offset="0.34" stop-color="#EF6F56"/>
+      <stop offset="0.62" stop-color="#CF6DFF"/>
+      <stop offset="1" stop-color="#7AC8FF"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="100" y1="100" x2="412" y2="412" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A1D58"/>
+      <stop offset="1" stop-color="#090C3A"/>
+    </linearGradient>
+    <linearGradient id="activeCell" x1="214" y1="214" x2="298" y2="298" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#64F1C8"/>
+      <stop offset="1" stop-color="#56C6FF"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="32" y="32" width="448" height="448" rx="104" fill="url(#bg)"/>
+  <rect x="32.5" y="32.5" width="447" height="447" rx="103.5" stroke="rgba(255,255,255,0.25)"/>
+
+  <rect x="96" y="96" width="320" height="320" rx="42" fill="url(#panel)" stroke="#4753BE" stroke-width="7"/>
+
+  <rect x="120" y="120" width="86" height="86" rx="14" fill="#232A66" stroke="#5A66D6" stroke-width="3"/>
+  <rect x="213" y="120" width="86" height="86" rx="14" fill="#232A66" stroke="#5A66D6" stroke-width="3"/>
+  <rect x="306" y="120" width="86" height="86" rx="14" fill="#232A66" stroke="#5A66D6" stroke-width="3"/>
+
+  <rect x="120" y="213" width="86" height="86" rx="14" fill="#232A66" stroke="#5A66D6" stroke-width="3"/>
+  <rect x="213" y="213" width="86" height="86" rx="14" fill="url(#activeCell)" fill-opacity="0.22" stroke="#7AF5D4" stroke-width="4"/>
+  <rect x="306" y="213" width="86" height="86" rx="14" fill="#232A66" stroke="#5A66D6" stroke-width="3"/>
+
+  <rect x="120" y="306" width="86" height="86" rx="14" fill="#232A66" stroke="#5A66D6" stroke-width="3"/>
+  <rect x="213" y="306" width="86" height="86" rx="14" fill="#232A66" stroke="#5A66D6" stroke-width="3"/>
+  <rect x="306" y="306" width="86" height="86" rx="14" fill="#232A66" stroke="#5A66D6" stroke-width="3"/>
+</svg>
