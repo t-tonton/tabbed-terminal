@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TabBar } from './TabBar';
@@ -106,5 +106,30 @@ describe('TabBar rename behavior', () => {
 
     expect(useAppStore.getState().workspaces).toHaveLength(1);
     expect(useAppStore.getState().workspaces[0].id).toBe('ws-2');
+  });
+
+  it('reorders workspaces on drag and drop', () => {
+    render(<TabBar />);
+
+    const sourceTab = screen.getByText('Workspace 1').closest('div');
+    const targetTab = screen.getByText('Workspace 2').closest('div');
+    expect(sourceTab).toBeTruthy();
+    expect(targetTab).toBeTruthy();
+
+    fireEvent.dragStart(sourceTab as HTMLElement, {
+      dataTransfer: {
+        effectAllowed: 'move',
+        setData: () => {},
+        getData: () => '',
+        clearData: () => {},
+      },
+    });
+    fireEvent.dragOver(targetTab as HTMLElement, {
+      dataTransfer: { dropEffect: 'move' },
+    });
+    fireEvent.drop(targetTab as HTMLElement);
+
+    const orderedIds = useAppStore.getState().workspaces.map((workspace) => workspace.id);
+    expect(orderedIds).toEqual(['ws-2', 'ws-1']);
   });
 });

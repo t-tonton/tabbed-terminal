@@ -15,6 +15,7 @@ export interface WorkspacesSlice {
   setProjectContext: (workspaceId: string, context: string) => void;
   markDirty: (workspaceId: string) => void;
   markClean: (workspaceId: string) => void;
+  reorderWorkspaces: (fromIndex: number, toIndex: number) => void;
 
   // Tab navigation
   nextTab: () => void;
@@ -100,6 +101,25 @@ export const createWorkspacesSlice: StateCreator<
         w.id === workspaceId ? { ...w, dirty: false } : w
       ),
     }));
+  },
+
+  reorderWorkspaces: (fromIndex, toIndex) => {
+    set((state) => {
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= state.workspaces.length ||
+        toIndex >= state.workspaces.length ||
+        fromIndex === toIndex
+      ) {
+        return state;
+      }
+
+      const next = [...state.workspaces];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return { workspaces: next };
+    });
   },
 
   nextTab: () => {

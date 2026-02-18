@@ -8,10 +8,12 @@ export function TabBar() {
   const createWorkspace = useAppStore((state) => state.createWorkspace);
   const deleteWorkspace = useAppStore((state) => state.deleteWorkspace);
   const updateWorkspace = useAppStore((state) => state.updateWorkspace);
+  const reorderWorkspaces = useAppStore((state) => state.reorderWorkspaces);
 
   const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [draggedTabId, setDraggedTabId] = useState<string | null>(null);
 
   const handleCloseTab = (e: React.MouseEvent, workspaceId: string) => {
     e.stopPropagation();
@@ -31,6 +33,14 @@ export function TabBar() {
     }
     setEditingTabId(null);
     setEditingName('');
+  };
+
+  const handleTabDrop = (targetWorkspaceId: string) => {
+    if (!draggedTabId || draggedTabId === targetWorkspaceId) return;
+
+    const fromIndex = workspaces.findIndex((workspace) => workspace.id === draggedTabId);
+    const toIndex = workspaces.findIndex((workspace) => workspace.id === targetWorkspaceId);
+    reorderWorkspaces(fromIndex, toIndex);
   };
 
   return (
@@ -57,6 +67,20 @@ export function TabBar() {
         return (
           <div
             key={workspace.id}
+            draggable={!editingTabId}
+            onDragStart={(e) => {
+              setDraggedTabId(workspace.id);
+              e.dataTransfer.effectAllowed = 'move';
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              handleTabDrop(workspace.id);
+            }}
+            onDragEnd={() => setDraggedTabId(null)}
             onClick={() => {
               if (!editingTabId) {
                 setActiveWorkspace(workspace.id);
@@ -79,8 +103,27 @@ export function TabBar() {
                 : 'transparent',
               borderTopLeftRadius: '8px',
               borderTopRightRadius: '8px',
-              border: isActive ? '1px solid rgba(74, 222, 128, 0.45)' : '1px solid transparent',
-              borderBottom: isActive ? '1px solid rgba(74, 222, 128, 0.2)' : '1px solid transparent',
+              borderStyle: 'solid',
+              borderWidth: '1px',
+              borderTopColor:
+                draggedTabId === workspace.id
+                  ? 'rgba(125, 211, 252, 0.5)'
+                  : isActive
+                  ? 'rgba(74, 222, 128, 0.45)'
+                  : 'transparent',
+              borderRightColor:
+                draggedTabId === workspace.id
+                  ? 'rgba(125, 211, 252, 0.5)'
+                  : isActive
+                  ? 'rgba(74, 222, 128, 0.45)'
+                  : 'transparent',
+              borderLeftColor:
+                draggedTabId === workspace.id
+                  ? 'rgba(125, 211, 252, 0.5)'
+                  : isActive
+                  ? 'rgba(74, 222, 128, 0.45)'
+                  : 'transparent',
+              borderBottomColor: isActive ? 'rgba(74, 222, 128, 0.2)' : 'transparent',
               cursor: 'pointer',
               flexShrink: 0,
               minWidth: '120px',
