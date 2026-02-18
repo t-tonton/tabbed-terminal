@@ -20,6 +20,7 @@ A desktop terminal workspace app built with Tauri + React.
 - `Cmd/Ctrl + T`: New workspace
 - `Cmd/Ctrl + W`: Close current workspace
 - `Cmd/Ctrl + N`: New pane
+- `Cmd/Ctrl + S`: Save current workspace snapshot
 - `Cmd/Ctrl + Shift + P`: Open snippets picker
 - `Cmd/Ctrl + F`: Find in focused pane
 - `Cmd/Ctrl + Shift + F`: Search across all pane history in workspaces
@@ -31,6 +32,7 @@ A desktop terminal workspace app built with Tauri + React.
 
 - Snippets picker is currently modal (background is locked while open)
 - Snippets are stored in local browser storage for now
+- Workspace save/restore currently uses local storage (Tauri fs persistence is planned)
 - Build shows chunk-size warning in Vite output (not a release blocker)
 
 ## Development
