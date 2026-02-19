@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 concurrency:
@@ -45,7 +45,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tauri-bundles-macos
-          path: src-tauri/target/release/bundle/**
+          path: |
+            src-tauri/target/release/bundle/**
+            !src-tauri/target/release/bundle/**/*.dmg
 
       - name: Generate SHA256 checksums
         if: startsWith(github.ref, 'refs/tags/')
@@ -53,7 +55,6 @@ jobs:
           set -euo pipefail
           cd src-tauri/target/release/bundle
           find . -type f \( \
-            -name "*.dmg" -o \
             -name "*.app.tar.gz" -o \
             -name "*.app.tar.gz.sig" -o \
             -name "*.tar.gz" -o \
@@ -66,7 +67,6 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            src-tauri/target/release/bundle/**/*.dmg
             src-tauri/target/release/bundle/**/*.app.tar.gz
             src-tauri/target/release/bundle/**/*.app.tar.gz.sig
             src-tauri/target/release/bundle/**/*.tar.gz
