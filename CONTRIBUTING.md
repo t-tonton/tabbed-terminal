@@ -57,6 +57,7 @@ CI must pass on PR:
 - Release draft is auto-updated by `.github/workflows/release-drafter.yml` on:
   - push to `main`
   - PR label/content updates
+- If multiple draft releases exist, workflow keeps only the latest draft automatically.
 - Version bump priority is:
   - `release:major` > `release:minor` > `release:patch`
 
