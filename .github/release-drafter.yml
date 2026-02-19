@@ -1,5 +1,6 @@
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
+next-version: '0.2.0'
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 no-changes-template: '- No user-facing changes in this cycle.'
 template: |
