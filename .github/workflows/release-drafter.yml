@@ -25,3 +25,36 @@ jobs:
           config-name: release-drafter.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Consolidate draft releases
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const drafts = releases
+              .filter((release) => release.draft)
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            if (drafts.length <= 1) {
+              core.info(`Draft release count is ${drafts.length}. No cleanup needed.`);
+              return;
+            }
+
+            const [latest, ...staleDrafts] = drafts;
+            core.info(`Keeping latest draft #${latest.id} (${latest.tag_name || latest.name}).`);
+
+            for (const release of staleDrafts) {
+              await github.rest.repos.deleteRelease({
+                owner,
+                repo,
+                release_id: release.id,
+              });
+              core.info(`Deleted stale draft #${release.id} (${release.tag_name || release.name}).`);
+            }
