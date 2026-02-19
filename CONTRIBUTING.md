@@ -61,6 +61,11 @@ CI must pass on PR:
 - Version bump priority is:
   - `release:major` > `release:minor` > `release:patch`
 
+## macOS Release Artifacts
+- Tagged releases (`v*`) in `.github/workflows/release.yml` publish non-DMG artifacts only.
+- DMG files are excluded from CI artifact upload, checksum generation, and GitHub Release assets.
+- Apple Developer Program–dependent notarization is not part of the current release pipeline.
+
 ## Review and Merge Policy
 - At least one reviewer approval is required.
 - Do not merge if unresolved review comments remain.
