@@ -23,55 +23,6 @@ interface TerminalMatch {
   length: number;
 }
 
-function normalizeTerminalChunk(chunk: string): string {
-  let out = '';
-
-  for (let i = 0; i < chunk.length; i += 1) {
-    const code = chunk.charCodeAt(i);
-
-    // ESC sequence
-    if (code === 27) {
-      const next = chunk[i + 1];
-
-      // CSI: ESC [ ... final-byte
-      if (next === '[') {
-        i += 2;
-        while (i < chunk.length) {
-          const c = chunk.charCodeAt(i);
-          if (c >= 64 && c <= 126) break;
-          i += 1;
-        }
-        continue;
-      }
-
-      // OSC: ESC ] ... BEL or ESC \
-      if (next === ']') {
-        i += 2;
-        while (i < chunk.length) {
-          const c = chunk.charCodeAt(i);
-          if (c === 7) break;
-          if (c === 27 && chunk[i + 1] === '\\') {
-            i += 1;
-            break;
-          }
-          i += 1;
-        }
-        continue;
-      }
-
-      continue;
-    }
-
-    // Drop CR, keep LF/TAB, drop other control chars.
-    if (code === 13 || code === 127) continue;
-    if (code < 32 && code !== 10 && code !== 9) continue;
-
-    out += chunk[i];
-  }
-
-  return out;
-}
-
 export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<XTerm | null>(null);
@@ -235,6 +186,11 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
     terminal.loadAddon(fitAddon);
 
     terminal.open(containerRef.current);
+    const savedHistory = useAppStore.getState().terminalRawHistoryByPane[paneId];
+    if (savedHistory) {
+      terminal.write(savedHistory);
+      terminal.scrollToBottom();
+    }
 
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
@@ -257,7 +213,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
           if (!aborted) {
             terminal.write(event.payload);
             terminal.scrollToBottom();
-            appendTerminalOutput(paneId, normalizeTerminalChunk(event.payload));
+            appendTerminalOutput(paneId, event.payload);
           }
         });
 
@@ -317,7 +273,10 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       resizeObserver.disconnect();
       unlistenOutput?.();
       unlistenExit?.();
-      if (ptySpawnedRef.current) {
+      const paneStillExists = useAppStore
+        .getState()
+        .workspaces.some((workspace) => workspace.panes.some((pane) => pane.id === paneId));
+      if (ptySpawnedRef.current && !paneStillExists) {
         invoke('pty_kill', { id: paneId }).catch(() => {});
         ptySpawnedRef.current = false;
       }

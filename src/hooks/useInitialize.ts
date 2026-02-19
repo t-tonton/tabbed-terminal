@@ -5,7 +5,6 @@ import { useAppStore } from '../stores';
 export function useInitialize() {
   const workspaces = useAppStore((state) => state.workspaces);
   const createWorkspace = useAppStore((state) => state.createWorkspace);
-  const createPane = useAppStore((state) => state.createPane);
   const markClean = useAppStore((state) => state.markClean);
   const initializedRef = useRef(false);
 
@@ -25,12 +24,9 @@ export function useInitialize() {
     // Create default workspace if none exists
     if (workspaces.length === 0) {
       const workspaceId = createWorkspace('blank', 'Workspace 1');
-
-      // Create a default pane
-      createPane(workspaceId, { title: 'Pane 1' });
       markClean(workspaceId);
     }
 
     initializedRef.current = true;
-  }, [workspaces.length, createWorkspace, createPane, markClean]);
+  }, [workspaces.length, createWorkspace, markClean]);
 }

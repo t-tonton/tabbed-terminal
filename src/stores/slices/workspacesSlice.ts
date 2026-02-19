@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { Workspace, WorkspaceTemplate } from '../../types';
-import { generateId } from '../../utils';
+import { DEFAULT_MODEL_CONFIG, generateId } from '../../utils';
 import type { AppStore } from '../appStore';
 
 export interface WorkspacesSlice {
@@ -33,6 +33,7 @@ export const createWorkspacesSlice: StateCreator<
 
   createWorkspace: (template = 'blank', name) => {
     const id = generateId();
+    const defaultPaneId = generateId();
     const now = new Date().toISOString();
 
     const workspace: Workspace = {
@@ -40,7 +41,17 @@ export const createWorkspacesSlice: StateCreator<
       name: name || `Workspace ${get().workspaces.length + 1}`,
       template,
       projectContext: '',
-      panes: [],
+      panes: [
+        {
+          id: defaultPaneId,
+          title: 'Pane 1',
+          systemPrompt: '',
+          injectContext: true,
+          messages: [],
+          modelConfig: { ...DEFAULT_MODEL_CONFIG },
+          layout: { x: 0, y: 0, w: 1, h: 1 },
+        },
+      ],
       layout: { direction: 'horizontal', sizes: [] },
       promptPresets: [],
       dirty: false,

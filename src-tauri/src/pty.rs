@@ -23,6 +23,16 @@ impl PtyManager {
     }
 
     pub fn spawn(&self, id: String, app_handle: AppHandle) -> Result<(), String> {
+        {
+            let instances = self
+                .instances
+                .lock()
+                .map_err(|_| "PTY manager lock poisoned".to_string())?;
+            if instances.contains_key(&id) {
+                return Ok(());
+            }
+        }
+
         let pty_system = native_pty_system();
 
         let pair = pty_system
