@@ -5,10 +5,56 @@ import type { AppStore } from '../appStore';
 
 const TERMINAL_HISTORY_LIMIT = 240000;
 
+function normalizeTerminalChunk(chunk: string): string {
+  let out = '';
+
+  for (let i = 0; i < chunk.length; i += 1) {
+    const code = chunk.charCodeAt(i);
+
+    if (code === 27) {
+      const next = chunk[i + 1];
+
+      if (next === '[') {
+        i += 2;
+        while (i < chunk.length) {
+          const c = chunk.charCodeAt(i);
+          if (c >= 64 && c <= 126) break;
+          i += 1;
+        }
+        continue;
+      }
+
+      if (next === ']') {
+        i += 2;
+        while (i < chunk.length) {
+          const c = chunk.charCodeAt(i);
+          if (c === 7) break;
+          if (c === 27 && chunk[i + 1] === '\\') {
+            i += 1;
+            break;
+          }
+          i += 1;
+        }
+        continue;
+      }
+
+      continue;
+    }
+
+    if (code === 13 || code === 127) continue;
+    if (code < 32 && code !== 10 && code !== 9) continue;
+
+    out += chunk[i];
+  }
+
+  return out;
+}
+
 export interface PanesSlice {
   focusedPaneId: string | null;
   sendingPaneIds: Set<string>;
   terminalHistoryByPane: Record<string, string>;
+  terminalRawHistoryByPane: Record<string, string>;
 
   // Actions
   createPane: (workspaceId: string, options?: CreatePaneOptions) => string;
@@ -44,6 +90,7 @@ export const createPanesSlice: StateCreator<
   focusedPaneId: null,
   sendingPaneIds: new Set(),
   terminalHistoryByPane: {},
+  terminalRawHistoryByPane: {},
 
   createPane: (workspaceId, options = {}) => {
     const id = generateId();
@@ -107,7 +154,9 @@ export const createPanesSlice: StateCreator<
   deletePane: (workspaceId, paneId) => {
     set((state) => {
       const nextHistory = { ...state.terminalHistoryByPane };
+      const nextRawHistory = { ...state.terminalRawHistoryByPane };
       delete nextHistory[paneId];
+      delete nextRawHistory[paneId];
 
       return {
         workspaces: state.workspaces.map((w) =>
@@ -117,6 +166,7 @@ export const createPanesSlice: StateCreator<
         ),
         focusedPaneId: state.focusedPaneId === paneId ? null : state.focusedPaneId,
         terminalHistoryByPane: nextHistory,
+        terminalRawHistoryByPane: nextRawHistory,
       };
     });
   },
@@ -249,17 +299,28 @@ export const createPanesSlice: StateCreator<
     if (!chunk) return;
 
     set((state) => {
-      const prev = state.terminalHistoryByPane[paneId] ?? '';
-      const appended = `${prev}${chunk}`;
-      const next =
-        appended.length > TERMINAL_HISTORY_LIMIT
-          ? appended.slice(appended.length - TERMINAL_HISTORY_LIMIT)
-          : appended;
+      const prevSearch = state.terminalHistoryByPane[paneId] ?? '';
+      const appendedSearch = `${prevSearch}${normalizeTerminalChunk(chunk)}`;
+      const nextSearch =
+        appendedSearch.length > TERMINAL_HISTORY_LIMIT
+          ? appendedSearch.slice(appendedSearch.length - TERMINAL_HISTORY_LIMIT)
+          : appendedSearch;
+
+      const prevRaw = state.terminalRawHistoryByPane[paneId] ?? '';
+      const appendedRaw = `${prevRaw}${chunk}`;
+      const nextRaw =
+        appendedRaw.length > TERMINAL_HISTORY_LIMIT
+          ? appendedRaw.slice(appendedRaw.length - TERMINAL_HISTORY_LIMIT)
+          : appendedRaw;
 
       return {
         terminalHistoryByPane: {
           ...state.terminalHistoryByPane,
-          [paneId]: next,
+          [paneId]: nextSearch,
+        },
+        terminalRawHistoryByPane: {
+          ...state.terminalRawHistoryByPane,
+          [paneId]: nextRaw,
         },
       };
     });
@@ -267,10 +328,17 @@ export const createPanesSlice: StateCreator<
 
   clearTerminalHistory: (paneId) => {
     set((state) => {
-      if (!state.terminalHistoryByPane[paneId]) return state;
+      if (!state.terminalHistoryByPane[paneId] && !state.terminalRawHistoryByPane[paneId]) {
+        return state;
+      }
       const nextHistory = { ...state.terminalHistoryByPane };
       delete nextHistory[paneId];
-      return { terminalHistoryByPane: nextHistory };
+      const nextRawHistory = { ...state.terminalRawHistoryByPane };
+      delete nextRawHistory[paneId];
+      return {
+        terminalHistoryByPane: nextHistory,
+        terminalRawHistoryByPane: nextRawHistory,
+      };
     });
   },
 
