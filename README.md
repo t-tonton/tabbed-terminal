@@ -68,3 +68,7 @@ cargo check --manifest-path src-tauri/Cargo.toml
 ## Contribution Guide
 
 See `CONTRIBUTING.md` for branch strategy, PR rules, and merge policy.
+
+## License
+
+MIT. See `LICENSE`.

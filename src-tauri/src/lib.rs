@@ -51,8 +51,10 @@ fn install_panic_hook() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    install_panic_hook();
-    append_lifecycle_log("run() started");
+    if cfg!(debug_assertions) {
+        install_panic_hook();
+        append_lifecycle_log("run() started");
+    }
 
     let result = tauri::Builder::default()
         .manage(PtyManager::new())
@@ -76,9 +78,15 @@ pub fn run() {
         .run(tauri::generate_context!());
 
     match result {
-        Ok(()) => append_lifecycle_log("run() returned Ok (app exited)"),
+        Ok(()) => {
+            if cfg!(debug_assertions) {
+                append_lifecycle_log("run() returned Ok (app exited)");
+            }
+        }
         Err(e) => {
-            append_lifecycle_log(&format!("run() returned Err: {}", e));
+            if cfg!(debug_assertions) {
+                append_lifecycle_log(&format!("run() returned Err: {}", e));
+            }
             panic!("error while running tauri application: {}", e);
         }
     }
