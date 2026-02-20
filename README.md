@@ -16,6 +16,18 @@ A desktop terminal workspace app built with Tauri + React.
   - Search snippets
   - Copy command to clipboard
 
+## Demo
+
+[Watch demo video](docs/demo/demo.webm)
+
+Local recording command:
+
+```bash
+npm run demo:record
+```
+
+The generated file is saved to `docs/demo/demo.webm`.
+
 ## Shortcuts
 
 - `Cmd/Ctrl + T`: New workspace
@@ -68,3 +80,7 @@ cargo check --manifest-path src-tauri/Cargo.toml
 ## Contribution Guide
 
 See `CONTRIBUTING.md` for branch strategy, PR rules, and merge policy.
+
+## License
+
+MIT. See `LICENSE`.
