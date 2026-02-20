@@ -18,6 +18,8 @@ A desktop terminal workspace app built with Tauri + React.
 
 ## Demo
 
+<video src="docs/demo/demo.webm" controls muted loop playsinline width="960"></video>
+
 [Watch demo video](docs/demo/demo.webm)
 
 Local recording command:
