@@ -202,19 +202,35 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
               setOrchestrationOpen((prev) => !prev);
               setFocusedPane(paneId);
             }}
-            title="Toggle orchestration"
+            aria-label="Toggle orchestration panel"
+            title="Toggle orchestration panel"
             style={{
-              width: '24px',
+              minWidth: '64px',
               height: '24px',
               border: '1px solid var(--border-default)',
               borderRadius: '4px',
               backgroundColor: orchestrationOpen ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-              color: 'var(--text-muted)',
-              fontSize: '12px',
+              color: orchestrationOpen ? '#c7d2fe' : 'var(--text-muted)',
+              fontSize: '11px',
+              fontWeight: 600,
+              padding: '0 8px',
               flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
             }}
           >
-            O
+            <span
+              aria-hidden="true"
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: orchestrationOpen ? '#6366f1' : 'var(--text-muted)',
+              }}
+            />
+            Relay
           </button>
           <button
             className="flex items-center justify-center rounded transition-colors"
@@ -267,154 +283,211 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
         </div>
       </div>
 
-      {orchestrationOpen && (
-        <div
-          style={{
-            borderBottom: '1px solid var(--border-subtle)',
-            backgroundColor: 'rgba(10, 18, 38, 0.85)',
-            padding: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            maxHeight: '220px',
-            overflow: 'auto',
-          }}
-          onMouseDown={(e) => e.stopPropagation()}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <input
-              value={commandDraft}
-              onChange={(e) => setCommandDraft(e.target.value)}
-              placeholder="Command to send to child panes"
-              style={{
-                flex: 1,
-                height: '28px',
-                borderRadius: '4px',
-                border: '1px solid var(--border-default)',
-                backgroundColor: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                padding: '0 8px',
-                fontSize: '12px',
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => sendCommand(selectedManagedPaneIds)}
-              disabled={isDispatching || selectedManagedPaneIds.length === 0 || commandDraft.trim().length === 0}
-              style={{
-                height: '28px',
-                borderRadius: '4px',
-                border: '1px solid var(--border-default)',
-                backgroundColor: '#1d4ed8',
-                color: '#fff',
-                padding: '0 8px',
-                fontSize: '12px',
-              }}
-            >
-              Send Selected
-            </button>
-            <button
-              type="button"
-              onClick={() => sendCommand(childPanes.map((pane) => pane.id))}
-              disabled={isDispatching || childPanes.length === 0 || commandDraft.trim().length === 0}
-              style={{
-                height: '28px',
-                borderRadius: '4px',
-                border: '1px solid var(--border-default)',
-                backgroundColor: 'transparent',
-                color: 'var(--text-primary)',
-                padding: '0 8px',
-                fontSize: '12px',
-              }}
-            >
-              Send All
-            </button>
-          </div>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+        {orchestrationOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '8px',
+              left: '8px',
+              right: '8px',
+              zIndex: 40,
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '6px',
+              backgroundColor: 'rgba(8, 14, 30, 0.95)',
+              padding: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              maxHeight: '56%',
+              overflow: 'auto',
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                value={commandDraft}
+                onChange={(e) => setCommandDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void sendCommand(selectedManagedPaneIds);
+                  }
+                }}
+                placeholder="Send command to selected child panes"
+                style={{
+                  flex: 1,
+                  height: '28px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-default)',
+                  backgroundColor: 'var(--bg-input)',
+                  color: 'var(--text-primary)',
+                  padding: '0 8px',
+                  fontSize: '12px',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => void sendCommand(selectedManagedPaneIds)}
+                disabled={
+                  isDispatching ||
+                  selectedManagedPaneIds.length === 0 ||
+                  commandDraft.trim().length === 0
+                }
+                style={{
+                  height: '28px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-default)',
+                  backgroundColor: '#1d4ed8',
+                  color: '#fff',
+                  padding: '0 8px',
+                  fontSize: '12px',
+                }}
+              >
+                Send
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrchestrationOpen(false)}
+                style={{
+                  height: '28px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-default)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-muted)',
+                  padding: '0 8px',
+                  fontSize: '12px',
+                }}
+              >
+                Close
+              </button>
+            </div>
 
-          {dispatchMessage && (
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{dispatchMessage}</div>
-          )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px' }}>
+              <button
+                type="button"
+                onClick={() => setManagedPaneIds(paneId, childPanes.map((pane) => pane.id))}
+                style={{
+                  height: '24px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-default)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-muted)',
+                  padding: '0 8px',
+                }}
+              >
+                Select All
+              </button>
+              <button
+                type="button"
+                onClick={() => setManagedPaneIds(paneId, [])}
+                style={{
+                  height: '24px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-default)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-muted)',
+                  padding: '0 8px',
+                }}
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => void sendCommand(childPanes.map((pane) => pane.id))}
+                disabled={
+                  isDispatching ||
+                  childPanes.length === 0 ||
+                  commandDraft.trim().length === 0
+                }
+                style={{
+                  height: '24px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-default)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-muted)',
+                  padding: '0 8px',
+                }}
+              >
+                Send All Children
+              </button>
+              {dispatchMessage && (
+                <span style={{ color: 'var(--text-muted)' }}>{dispatchMessage}</span>
+              )}
+            </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {childPanes.length === 0 && (
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No child panes in this workspace.</div>
-            )}
-            {childPanes.map((childPane) => {
-              const selected = selectedManagedPaneIds.includes(childPane.id);
-              const latestOutput = getLatestVisibleLine(terminalHistoryByPane[childPane.id] ?? '');
-              return (
-                <div
-                  key={childPane.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: '4px',
-                    padding: '6px',
-                  }}
-                >
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {childPanes.length === 0 && (
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  No child panes in this workspace.
+                </div>
+              )}
+              {childPanes.map((childPane) => {
+                const selected = selectedManagedPaneIds.includes(childPane.id);
+                const latestOutput = getLatestVisibleLine(terminalHistoryByPane[childPane.id] ?? '');
+                return (
+                  <label
+                    key={childPane.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '4px',
+                      padding: '5px 6px',
+                      cursor: 'pointer',
+                    }}
+                    title={`Latest: ${latestOutput}`}
+                  >
                     <input
                       type="checkbox"
                       checked={selected}
                       onChange={() => toggleManagedPane(childPane.id)}
                     />
-                    <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{childPane.title}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-primary)', flex: 1 }}>
+                      {childPane.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void sendCommand([childPane.id]);
+                      }}
+                      disabled={isDispatching || commandDraft.trim().length === 0}
+                      style={{
+                        height: '22px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-default)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-primary)',
+                        padding: '0 6px',
+                        fontSize: '11px',
+                      }}
+                    >
+                      Send
+                    </button>
                   </label>
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      color: 'var(--text-muted)',
-                      maxWidth: '48%',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                    title={latestOutput}
-                  >
-                    {latestOutput}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => sendCommand([childPane.id])}
-                    disabled={isDispatching || commandDraft.trim().length === 0}
-                    style={{
-                      height: '24px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-default)',
-                      backgroundColor: 'transparent',
-                      color: 'var(--text-primary)',
-                      padding: '0 6px',
-                      fontSize: '11px',
-                    }}
-                  >
-                    Send
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          {paneDispatchLogs.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '6px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                Dispatch Log
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                {paneDispatchLogs.slice(0, 5).map((log) => (
-                  <div key={log.id} style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    [{formatTime(log.createdAt)}] {log.status.toUpperCase()} ({log.targetPaneIds.length}): {log.command}
-                  </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          )}
-        </div>
-      )}
 
-      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+            {paneDispatchLogs.length > 0 && (
+              <details>
+                <summary style={{ fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  Dispatch Log
+                </summary>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                  {paneDispatchLogs.slice(0, 5).map((log) => (
+                    <div key={log.id} style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      [{formatTime(log.createdAt)}] {log.status.toUpperCase()} ({log.targetPaneIds.length}): {log.command}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        )}
         <div style={{ position: 'absolute', inset: 0 }}>
           <Terminal paneId={paneId} isFocused={isFocused} onFocus={handlePaneClick} />
         </div>
