@@ -63,6 +63,9 @@ jobs:
       - name: Apply version bump
         if: steps.decide.outputs.should_bump == 'true'
         id: bump
+        env:
+          BUMP_SOURCE_PR_NUMBER: ${{ github.event.pull_request.number }}
+          BUMP_SOURCE_PR_TITLE: ${{ github.event.pull_request.title }}
         run: node .github/scripts/bump-version.mjs "${{ steps.decide.outputs.bump }}"
 
       - name: Create version bump PR
@@ -75,6 +78,7 @@ jobs:
             ## Summary
             - auto-generated version bump PR based on merged PR label `${{ steps.decide.outputs.bump }}`
             - updates Node/Tauri/Rust version fields consistently
+            - appends a release entry to `CHANGELOG.md`
 
             ## Source
             - merged PR: #${{ github.event.pull_request.number }}

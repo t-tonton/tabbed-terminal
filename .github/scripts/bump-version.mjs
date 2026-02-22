@@ -56,6 +56,39 @@ function updateCargoLock(path, newVersion) {
   fs.writeFileSync(path, updated);
 }
 
+function updateChangelog(path, newVersion, bump, sourcePrNumber, sourcePrTitle) {
+  const raw = fs.readFileSync(path, 'utf8');
+  const existingHeaderPattern = new RegExp(`^## v${newVersion} - `, 'm');
+  if (existingHeaderPattern.test(raw)) {
+    return;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const sourceLine = sourcePrNumber
+    ? `- Source merged PR: #${sourcePrNumber}${sourcePrTitle ? ` (${sourcePrTitle})` : ''}.`
+    : '- Source merged PR: (not provided).';
+
+  const section = [
+    `## v${newVersion} - ${today}`,
+    '',
+    '### Maintenance',
+    `- Automated ${bump} version bump to \`v${newVersion}\`.`,
+    sourceLine,
+    '',
+  ].join('\n');
+
+  const marker = '\n## v';
+  const markerIndex = raw.indexOf(marker);
+  if (markerIndex === -1) {
+    const suffix = raw.endsWith('\n') ? '' : '\n';
+    fs.writeFileSync(path, `${raw}${suffix}\n${section}`);
+    return;
+  }
+
+  const updated = `${raw.slice(0, markerIndex + 1)}${section}${raw.slice(markerIndex + 1)}`;
+  fs.writeFileSync(path, updated);
+}
+
 const bump = process.argv[2];
 if (!bump) {
   console.error('Usage: node .github/scripts/bump-version.mjs <major|minor|patch>');
@@ -67,6 +100,7 @@ const packageLockPath = 'package-lock.json';
 const tauriConfPath = 'src-tauri/tauri.conf.json';
 const cargoTomlPath = 'src-tauri/Cargo.toml';
 const cargoLockPath = 'src-tauri/Cargo.lock';
+const changelogPath = 'CHANGELOG.md';
 
 const packageJson = readJson(packageJsonPath);
 const oldVersion = packageJson.version;
@@ -88,6 +122,13 @@ writeJson(tauriConfPath, tauriConf);
 
 updateCargoToml(cargoTomlPath, newVersion);
 updateCargoLock(cargoLockPath, newVersion);
+updateChangelog(
+  changelogPath,
+  newVersion,
+  bump,
+  process.env.BUMP_SOURCE_PR_NUMBER,
+  process.env.BUMP_SOURCE_PR_TITLE,
+);
 
 console.log(`Bumped version: ${oldVersion} -> ${newVersion}`);
 if (process.env.GITHUB_OUTPUT) {
