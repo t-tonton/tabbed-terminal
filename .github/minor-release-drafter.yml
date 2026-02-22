@@ -1,4 +1,4 @@
-name-template: 'Minor line draft: v$RESOLVED_VERSION'
+name-template: 'v$RESOLVED_VERSION'
 tag-template: 'minor-v$RESOLVED_VERSION'
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 no-changes-template: '- No user-facing changes in this cycle.'
