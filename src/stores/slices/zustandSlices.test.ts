@@ -210,12 +210,25 @@ describe('panesSlice', () => {
     expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(0);
   });
 
+  it('does not increment unread for first chunk on a newly created inactive pane', () => {
+    const pane1Id = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
+    const pane2Id = useAppStore.getState().createPane('ws-1', { title: 'Pane 2' });
+    useAppStore.getState().setFocusedPane(pane1Id);
+
+    useAppStore.getState().appendTerminalOutput(pane2Id, '% ');
+    expect(useAppStore.getState().unreadCountByPane[pane2Id]).toBe(0);
+
+    useAppStore.getState().appendTerminalOutput(pane2Id, 'build done');
+    expect(useAppStore.getState().unreadCountByPane[pane2Id]).toBe(1);
+  });
+
   it('clears unread count when pane is focused', () => {
     const paneId = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
     const ws2Id = useAppStore.getState().createWorkspace('blank', 'Workspace 2');
     useAppStore.getState().setActiveWorkspace(ws2Id);
 
     useAppStore.getState().appendTerminalOutput(paneId, 'inactive output');
+    useAppStore.getState().appendTerminalOutput(paneId, 'inactive output 2');
     expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(1);
 
     useAppStore.getState().setActiveWorkspace('ws-1');

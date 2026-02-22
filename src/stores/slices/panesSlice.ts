@@ -149,6 +149,8 @@ export const createPanesSlice: StateCreator<
           ? { ...w, panes: [...w.panes, pane], dirty: true }
           : w
       ),
+      focusedPaneId:
+        state.activeWorkspaceId === workspaceId ? id : state.focusedPaneId,
     }));
 
     return id;
@@ -305,8 +307,10 @@ export const createPanesSlice: StateCreator<
     if (!chunk) return;
 
     set((state) => {
+      const normalizedChunk = normalizeTerminalChunk(chunk);
+      const hasMeaningfulOutput = /\S/.test(normalizedChunk);
       const prevSearch = state.terminalHistoryByPane[paneId] ?? '';
-      const appendedSearch = `${prevSearch}${normalizeTerminalChunk(chunk)}`;
+      const appendedSearch = `${prevSearch}${normalizedChunk}`;
       const nextSearch =
         appendedSearch.length > TERMINAL_HISTORY_LIMIT
           ? appendedSearch.slice(appendedSearch.length - TERMINAL_HISTORY_LIMIT)
@@ -331,8 +335,15 @@ export const createPanesSlice: StateCreator<
         isActiveWorkspacePane && state.focusedPaneId === null;
       const isFocusedActivePane =
         paneWorkspaceId === state.activeWorkspaceId && state.focusedPaneId === paneId;
+      const isFirstChunkForPane = prevRaw.length === 0;
+      const shouldIncrementUnread =
+        hasMeaningfulOutput &&
+        !isFocusedActivePane &&
+        !hasNoExplicitFocusInActiveWorkspace &&
+        !isFirstChunkForPane;
       const nextUnreadCount = isFocusedActivePane
         || hasNoExplicitFocusInActiveWorkspace
+        || !shouldIncrementUnread
         ? (state.unreadCountByPane[paneId] ?? 0)
         : (state.unreadCountByPane[paneId] ?? 0) + 1;
 
