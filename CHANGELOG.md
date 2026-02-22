@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## v0.4.0 - 2026-02-22
+
+### Added
+- Unread indicators for inactive panes and tab-level unread count badges.
+- Initial focus handling for newly created/switching workspaces to reduce missed context.
+
+### Fixed
+- False unread notifications on initial/empty terminal output chunks.
+- Pane close button usability (larger hit area, drag interference prevention, icon/hit-area alignment).
+- Pane resize behavior for symmetric left-right resizing and top-edge expansion.
+- Drag preview sizing mismatch during pane move operations.
+
 ## v0.2.0 - 2026-02-18
 
 ### Added
