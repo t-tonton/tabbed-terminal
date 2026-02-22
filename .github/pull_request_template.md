@@ -8,8 +8,8 @@
 - Closes #
 - note issue: https://github.com/t-tonton/note/issues/
 
-## Release Label
-- Set exactly one: `release:major` / `release:minor` / `release:patch`
+## Release Label (optional)
+- Add release label if needed for release notes: `release:minor` / `release:patch`
 
 ## Verification
 ```bash
@@ -24,7 +24,7 @@ cargo check --manifest-path src-tauri/Cargo.toml
 - After:
 
 ## Checklist
-- [ ] I set exactly one release label (`release:major` / `release:minor` / `release:patch`)
+- [ ] (Optional) I set a release label (`release:minor` / `release:patch`)
 - [ ] I confirmed local app startup (`npm run tauri dev`)
 - [ ] I ran lint/test/build successfully
 - [ ] I ran `cargo check` successfully
