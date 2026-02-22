@@ -70,7 +70,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           branch: chore/auto-version-bump-v${{ steps.bump.outputs.new_version }}
-          title: chore: bump version to ${{ steps.bump.outputs.new_version }}
+          title: "chore: bump version to ${{ steps.bump.outputs.new_version }}"
           body: |
             ## Summary
             - auto-generated version bump PR based on merged PR label `${{ steps.decide.outputs.bump }}`
@@ -80,5 +80,5 @@ jobs:
             - merged PR: #${{ github.event.pull_request.number }}
           labels: |
             release:patch
-          commit-message: chore: bump version to ${{ steps.bump.outputs.new_version }}
+          commit-message: "chore: bump version to ${{ steps.bump.outputs.new_version }}"
           delete-branch: true
