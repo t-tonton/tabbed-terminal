@@ -24,6 +24,8 @@ beforeEach(() => {
     focusedPaneId: null,
     sendingPaneIds: new Set<string>(),
     terminalHistoryByPane: {},
+    terminalRawHistoryByPane: {},
+    unreadCountByPane: {},
     isWorkspaceSearchOpen: false,
   });
 });
@@ -57,6 +59,27 @@ describe('workspacesSlice', () => {
     expect(nextState.activeWorkspaceId).toBe('ws-1');
   });
 
+  it('deletes workspace and clears related terminal/unread state', () => {
+    useAppStore.setState({
+      workspaces: [makeWorkspace('ws-1', 'Workspace 1'), makeWorkspace('ws-2', 'Workspace 2')],
+      activeWorkspaceId: 'ws-2',
+    });
+    const paneId = useAppStore.getState().createPane('ws-2', { title: 'Pane 2' });
+    useAppStore.setState({
+      terminalHistoryByPane: { [paneId]: 'abc' },
+      terminalRawHistoryByPane: { [paneId]: 'abc' },
+      unreadCountByPane: { [paneId]: 3 },
+    });
+
+    useAppStore.getState().deleteWorkspace('ws-2');
+
+    const nextState = useAppStore.getState();
+    expect(nextState.workspaces).toHaveLength(1);
+    expect(nextState.terminalHistoryByPane[paneId]).toBeUndefined();
+    expect(nextState.terminalRawHistoryByPane[paneId]).toBeUndefined();
+    expect(nextState.unreadCountByPane[paneId]).toBeUndefined();
+  });
+
   it('reorders workspaces by index', () => {
     useAppStore.setState({
       workspaces: [
@@ -81,6 +104,8 @@ describe('panesSlice', () => {
       workspaces: [makeWorkspace('ws-1', 'Workspace 1')],
       activeWorkspaceId: 'ws-1',
       terminalHistoryByPane: {},
+      terminalRawHistoryByPane: {},
+      unreadCountByPane: {},
     });
   });
 
@@ -148,5 +173,27 @@ describe('panesSlice', () => {
     useAppStore.getState().deletePane('ws-1', paneId);
 
     expect(useAppStore.getState().terminalHistoryByPane[paneId]).toBeUndefined();
+  });
+
+  it('increments unread count only for inactive pane output', () => {
+    const paneId = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
+
+    useAppStore.getState().setFocusedPane(paneId);
+    useAppStore.getState().appendTerminalOutput(paneId, 'active output');
+    expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(0);
+
+    useAppStore.getState().setFocusedPane(null);
+    useAppStore.getState().appendTerminalOutput(paneId, 'inactive output');
+    expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(1);
+  });
+
+  it('clears unread count when pane is focused', () => {
+    const paneId = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
+
+    useAppStore.getState().appendTerminalOutput(paneId, 'inactive output');
+    expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(1);
+
+    useAppStore.getState().setFocusedPane(paneId);
+    expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(0);
   });
 });

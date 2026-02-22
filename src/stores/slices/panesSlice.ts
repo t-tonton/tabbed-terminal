@@ -55,6 +55,7 @@ export interface PanesSlice {
   sendingPaneIds: Set<string>;
   terminalHistoryByPane: Record<string, string>;
   terminalRawHistoryByPane: Record<string, string>;
+  unreadCountByPane: Record<string, number>;
 
   // Actions
   createPane: (workspaceId: string, options?: CreatePaneOptions) => string;
@@ -68,6 +69,7 @@ export interface PanesSlice {
   // Terminal history
   appendTerminalOutput: (paneId: string, chunk: string) => void;
   clearTerminalHistory: (paneId: string) => void;
+  markPaneRead: (paneId: string) => void;
 
   // Messages
   addMessage: (workspaceId: string, paneId: string, message: Message) => void;
@@ -91,6 +93,7 @@ export const createPanesSlice: StateCreator<
   sendingPaneIds: new Set(),
   terminalHistoryByPane: {},
   terminalRawHistoryByPane: {},
+  unreadCountByPane: {},
 
   createPane: (workspaceId, options = {}) => {
     const id = generateId();
@@ -155,8 +158,10 @@ export const createPanesSlice: StateCreator<
     set((state) => {
       const nextHistory = { ...state.terminalHistoryByPane };
       const nextRawHistory = { ...state.terminalRawHistoryByPane };
+      const nextUnread = { ...state.unreadCountByPane };
       delete nextHistory[paneId];
       delete nextRawHistory[paneId];
+      delete nextUnread[paneId];
 
       return {
         workspaces: state.workspaces.map((w) =>
@@ -167,6 +172,7 @@ export const createPanesSlice: StateCreator<
         focusedPaneId: state.focusedPaneId === paneId ? null : state.focusedPaneId,
         terminalHistoryByPane: nextHistory,
         terminalRawHistoryByPane: nextRawHistory,
+        unreadCountByPane: nextUnread,
       };
     });
   },
@@ -313,6 +319,19 @@ export const createPanesSlice: StateCreator<
           ? appendedRaw.slice(appendedRaw.length - TERMINAL_HISTORY_LIMIT)
           : appendedRaw;
 
+      let paneWorkspaceId: string | null = null;
+      for (const workspace of state.workspaces) {
+        if (workspace.panes.some((p) => p.id === paneId)) {
+          paneWorkspaceId = workspace.id;
+          break;
+        }
+      }
+      const isFocusedActivePane =
+        paneWorkspaceId === state.activeWorkspaceId && state.focusedPaneId === paneId;
+      const nextUnreadCount = isFocusedActivePane
+        ? (state.unreadCountByPane[paneId] ?? 0)
+        : (state.unreadCountByPane[paneId] ?? 0) + 1;
+
       return {
         terminalHistoryByPane: {
           ...state.terminalHistoryByPane,
@@ -321,6 +340,10 @@ export const createPanesSlice: StateCreator<
         terminalRawHistoryByPane: {
           ...state.terminalRawHistoryByPane,
           [paneId]: nextRaw,
+        },
+        unreadCountByPane: {
+          ...state.unreadCountByPane,
+          [paneId]: nextUnreadCount,
         },
       };
     });
@@ -338,6 +361,18 @@ export const createPanesSlice: StateCreator<
       return {
         terminalHistoryByPane: nextHistory,
         terminalRawHistoryByPane: nextRawHistory,
+      };
+    });
+  },
+
+  markPaneRead: (paneId) => {
+    set((state) => {
+      if (!state.unreadCountByPane[paneId]) return state;
+      return {
+        unreadCountByPane: {
+          ...state.unreadCountByPane,
+          [paneId]: 0,
+        },
       };
     });
   },
@@ -361,7 +396,15 @@ export const createPanesSlice: StateCreator<
   },
 
   setFocusedPane: (paneId) => {
-    set({ focusedPaneId: paneId });
+    set((state) => {
+      if (!paneId) return { focusedPaneId: null };
+      return {
+        focusedPaneId: paneId,
+        unreadCountByPane: state.unreadCountByPane[paneId]
+          ? { ...state.unreadCountByPane, [paneId]: 0 }
+          : state.unreadCountByPane,
+      };
+    });
   },
 
   setSendingPane: (paneId, sending) => {

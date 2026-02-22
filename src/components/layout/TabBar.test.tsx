@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { TabBar } from './TabBar';
 import { useAppStore } from '../../stores';
+import { DEFAULT_MODEL_CONFIG } from '../../utils';
 
 function createWorkspace(id: string, name: string, dirty = false) {
   const now = new Date().toISOString();
@@ -20,6 +21,18 @@ function createWorkspace(id: string, name: string, dirty = false) {
   };
 }
 
+function createPane(id: string, title: string) {
+  return {
+    id,
+    title,
+    systemPrompt: '',
+    injectContext: true,
+    messages: [],
+    modelConfig: { ...DEFAULT_MODEL_CONFIG },
+    layout: { x: 0, y: 0, w: 1, h: 1 },
+  };
+}
+
 describe('TabBar rename behavior', () => {
   beforeEach(() => {
     useAppStore.setState({
@@ -28,6 +41,7 @@ describe('TabBar rename behavior', () => {
         createWorkspace('ws-2', 'Workspace 2'),
       ],
       activeWorkspaceId: 'ws-1',
+      unreadCountByPane: {},
     });
   });
 
@@ -106,6 +120,22 @@ describe('TabBar rename behavior', () => {
 
     expect(useAppStore.getState().workspaces).toHaveLength(1);
     expect(useAppStore.getState().workspaces[0].id).toBe('ws-2');
+  });
+
+  it('shows unread badge per workspace', () => {
+    useAppStore.setState({
+      workspaces: [
+        {
+          ...createWorkspace('ws-1', 'Workspace 1'),
+          panes: [createPane('pane-1', 'Pane 1')],
+        },
+        createWorkspace('ws-2', 'Workspace 2'),
+      ],
+      unreadCountByPane: { 'pane-1': 2 },
+    });
+
+    render(<TabBar />);
+    expect(screen.getByLabelText('Workspace 1 unread 2')).toBeInTheDocument();
   });
 
 });
