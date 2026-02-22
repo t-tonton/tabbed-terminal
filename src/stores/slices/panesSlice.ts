@@ -326,9 +326,13 @@ export const createPanesSlice: StateCreator<
           break;
         }
       }
+      const isActiveWorkspacePane = paneWorkspaceId === state.activeWorkspaceId;
+      const hasNoExplicitFocusInActiveWorkspace =
+        isActiveWorkspacePane && state.focusedPaneId === null;
       const isFocusedActivePane =
         paneWorkspaceId === state.activeWorkspaceId && state.focusedPaneId === paneId;
       const nextUnreadCount = isFocusedActivePane
+        || hasNoExplicitFocusInActiveWorkspace
         ? (state.unreadCountByPane[paneId] ?? 0)
         : (state.unreadCountByPane[paneId] ?? 0) + 1;
 

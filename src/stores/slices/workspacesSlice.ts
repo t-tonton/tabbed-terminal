@@ -62,6 +62,7 @@ export const createWorkspacesSlice: StateCreator<
     set((state) => ({
       workspaces: [...state.workspaces, workspace],
       activeWorkspaceId: id,
+      focusedPaneId: defaultPaneId,
     }));
 
     return id;
@@ -102,12 +103,18 @@ export const createWorkspacesSlice: StateCreator<
         }
       }
 
+      const newActiveWorkspace = newWorkspaces.find((w) => w.id === newActiveId);
+      const nextFocusedPaneId =
+        state.focusedPaneId &&
+        !removedPaneIds.has(state.focusedPaneId) &&
+        newActiveWorkspace?.panes.some((pane) => pane.id === state.focusedPaneId)
+          ? state.focusedPaneId
+          : newActiveWorkspace?.panes[0]?.id ?? null;
+
       return {
         workspaces: newWorkspaces,
         activeWorkspaceId: newActiveId,
-        focusedPaneId: state.focusedPaneId && removedPaneIds.has(state.focusedPaneId)
-          ? null
-          : state.focusedPaneId,
+        focusedPaneId: nextFocusedPaneId,
         terminalHistoryByPane: nextTerminalHistoryByPane,
         terminalRawHistoryByPane: nextTerminalRawHistoryByPane,
         unreadCountByPane: nextUnreadCountByPane,
@@ -116,7 +123,19 @@ export const createWorkspacesSlice: StateCreator<
   },
 
   setActiveWorkspace: (id) => {
-    set({ activeWorkspaceId: id });
+    set((state) => {
+      const targetWorkspace = state.workspaces.find((workspace) => workspace.id === id);
+      if (!targetWorkspace) return state;
+
+      const keepFocused =
+        state.focusedPaneId &&
+        targetWorkspace.panes.some((pane) => pane.id === state.focusedPaneId);
+
+      return {
+        activeWorkspaceId: id,
+        focusedPaneId: keepFocused ? state.focusedPaneId : targetWorkspace.panes[0]?.id ?? null,
+      };
+    });
   },
 
   updateWorkspace: (id, updates) => {
@@ -171,20 +190,20 @@ export const createWorkspacesSlice: StateCreator<
   },
 
   nextTab: () => {
-    const { workspaces, activeWorkspaceId } = get();
+    const { workspaces, activeWorkspaceId, setActiveWorkspace } = get();
     if (workspaces.length === 0) return;
 
     const currentIndex = workspaces.findIndex((w) => w.id === activeWorkspaceId);
     const nextIndex = (currentIndex + 1) % workspaces.length;
-    set({ activeWorkspaceId: workspaces[nextIndex].id });
+    setActiveWorkspace(workspaces[nextIndex].id);
   },
 
   prevTab: () => {
-    const { workspaces, activeWorkspaceId } = get();
+    const { workspaces, activeWorkspaceId, setActiveWorkspace } = get();
     if (workspaces.length === 0) return;
 
     const currentIndex = workspaces.findIndex((w) => w.id === activeWorkspaceId);
     const prevIndex = (currentIndex - 1 + workspaces.length) % workspaces.length;
-    set({ activeWorkspaceId: workspaces[prevIndex].id });
+    setActiveWorkspace(workspaces[prevIndex].id);
   },
 });
