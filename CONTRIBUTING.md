@@ -85,11 +85,11 @@ Examples:
 
 ## Issue Management
 This project tracks planning issues in:
-- `https://github.com/t-tonton/note/issues`
+- `https://github.com/t-tonton/tabbed-terminal/issues`
 
 When work is done:
-1. Add `対応PR: <PR URL>` comment to the note issue.
-2. Close the note issue.
+1. Add `対応PR: <PR URL>` comment to the related issue.
+2. Close the related issue.
 
 ## Branch Protection (GitHub Settings)
 For `main`, enable:

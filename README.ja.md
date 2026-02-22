@@ -62,8 +62,8 @@ cargo check --manifest-path src-tauri/Cargo.toml
 
 ## Issue 報告
 
-- 公開後の不具合報告 / 機能要望はこのリポジトリで管理します。
-- 内部フェーズ中のリリース作業は別途管理します。
+- 不具合報告 / 機能要望は以下の Issue からお願いします。
+  - `https://github.com/t-tonton/tabbed-terminal/issues`
 
 ## コントリビューションガイド
 
