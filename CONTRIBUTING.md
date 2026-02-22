@@ -16,8 +16,8 @@ Branch name examples:
 - 1 PR = 1 logical change (or 1 Issue).
 - Link related issue in PR body (`Closes #...` and note issue URL).
 - Use `.github/pull_request_template.md`.
-- Set exactly one release label on every PR:
-  - `release:major` / `release:minor` / `release:patch`
+- Release labels are optional on normal PRs:
+  - `release:minor` / `release:patch` (for release notes categorization when needed)
 - Keep PR small enough to review quickly.
 
 ## Local Quality Gates (pre-commit / pre-push)
@@ -51,18 +51,24 @@ cargo check --manifest-path src-tauri/Cargo.toml
 CI must pass on PR:
 - `Web (lint + test + build)`
 - `Tauri (cargo check)`
-- `Require release:* label` (exactly one required)
 
 ## Release Draft Automation
 - Release draft is auto-updated by `.github/workflows/release-drafter.yml` on:
   - push to `main`
   - PR label/content updates
-- If multiple draft releases exist, workflow keeps only the latest draft automatically.
-- Version bump priority is:
-  - `release:major` > `release:minor` > `release:patch`
-- After a PR with `release:*` label is merged into `main`, `.github/workflows/auto-version-bump.yml` opens a version bump PR automatically.
+- Workflow also maintains a minor-line draft on `releases/vX.Y.x`.
+- If multiple draft releases exist, workflow keeps the latest draft per group (`main` and `minor`) automatically.
+- Version bump PR is manual via `.github/workflows/auto-version-bump.yml` (`workflow_dispatch`):
+  - select `patch` or `minor`
+  - optional source PR number/title
 - Auto-generated version bump PR title format: `chore: bump version to X.Y.Z`
-- Do not remove `release:*` labels from normal PRs; they drive semver bump automation.
+- Version bump PR updates:
+  - `package.json`
+  - `package-lock.json`
+  - `src-tauri/Cargo.toml`
+  - `src-tauri/Cargo.lock`
+  - `src-tauri/tauri.conf.json`
+  - `CHANGELOG.md`
 
 ## macOS Release Artifacts
 - Tagged releases (`v*`) in `.github/workflows/release.yml` publish non-DMG artifacts only.
