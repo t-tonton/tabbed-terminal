@@ -39,7 +39,7 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 
 ## 前提環境
 
-- Node.js `24.x`（LTS推奨）
+- Node.js `22.12+` または `24.x`（LTS推奨: `24.x`）
 - npm `10+`
 - Tauri のビルド/チェック用に Rust toolchain（`cargo`）
 

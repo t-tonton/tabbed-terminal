@@ -52,7 +52,7 @@ The generated file is saved to `docs/demo/demo.webm`.
 
 ## Requirements
 
-- Node.js `24.x` (LTS recommended)
+- Node.js `22.12+` or `24.x` (LTS recommended: `24.x`)
 - npm `10+`
 - Rust toolchain (`cargo`) for Tauri build/check
 
