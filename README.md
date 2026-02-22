@@ -34,7 +34,6 @@ The generated file is saved to `docs/demo/demo.webm`.
 - `Cmd/Ctrl + T`: New workspace
 - `Cmd/Ctrl + W`: Close current workspace
 - `Cmd/Ctrl + N`: New pane
-- `Cmd/Ctrl + S`: Save current workspace snapshot
 - `Cmd/Ctrl + Shift + P`: Open snippets picker
 - `Cmd/Ctrl + F`: Find in focused pane
 - `Cmd/Ctrl + Shift + F`: Search across all pane history in workspaces
@@ -47,7 +46,6 @@ The generated file is saved to `docs/demo/demo.webm`.
 - Sidebar currently shows only active features (search / new pane / snippets)
 - Snippets picker is currently modal (background is locked while open)
 - Snippets are stored in local browser storage for now
-- Workspace save/restore currently uses local storage (Tauri fs persistence is planned)
 - Build shows chunk-size warning in Vite output (not a release blocker)
 
 ## Requirements

@@ -26,7 +26,6 @@ function KeyboardShortcutHarness() {
 
 describe('useKeyboardShortcuts', () => {
   beforeEach(() => {
-    localStorage.clear();
     useAppStore.setState({
       workspaces: [createWorkspace()],
       activeWorkspaceId: 'ws-1',
@@ -96,28 +95,4 @@ describe('useKeyboardShortcuts', () => {
     expect(useAppStore.getState().isWorkspaceSearchOpen).toBe(true);
   });
 
-  it('saves workspace snapshot and marks dirty workspace as clean on Cmd/Ctrl+S', () => {
-    useAppStore.setState({
-      workspaces: [{ ...createWorkspace(), dirty: true }],
-      activeWorkspaceId: 'ws-1',
-    });
-    render(<KeyboardShortcutHarness />);
-
-    const metaEvent = new KeyboardEvent('keydown', {
-      key: 's',
-      metaKey: true,
-      bubbles: true,
-      cancelable: true,
-    });
-    document.dispatchEvent(metaEvent);
-
-    expect(metaEvent.defaultPrevented).toBe(true);
-    expect(useAppStore.getState().workspaces[0].dirty).toBe(false);
-
-    const raw = localStorage.getItem('tabbed-terminal.workspace-state.v1');
-    expect(raw).toBeTruthy();
-    const parsed = JSON.parse(raw ?? '{}');
-    expect(parsed.activeWorkspaceId).toBe('ws-1');
-    expect(parsed.workspaces[0].dirty).toBe(false);
-  });
 });

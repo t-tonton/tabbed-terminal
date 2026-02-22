@@ -21,7 +21,6 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 - `Cmd/Ctrl + T`: 新しいワークスペース
 - `Cmd/Ctrl + W`: 現在のワークスペースを閉じる
 - `Cmd/Ctrl + N`: 新しいペイン
-- `Cmd/Ctrl + S`: 現在のワークスペース状態を保存
 - `Cmd/Ctrl + Shift + P`: Snippets Picker を開く
 - `Cmd/Ctrl + F`: フォーカス中のPane内検索
 - `Cmd/Ctrl + Shift + F`: ワークスペース内の全Pane履歴を横断検索
@@ -34,7 +33,6 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 - サイドバーは現時点で利用中の機能のみ表示（検索 / 新規Pane / Snippets）
 - Snippets Picker は現状モーダル表示（表示中は背景操作をロック）
 - スニペットは現時点ではローカルブラウザストレージに保存
-- ワークスペース保存/復元は現時点で localStorage ベース（Tauri fs 化は今後対応）
 - Vite のビルドで chunk-size warning が出る（リリースブロッカーではない）
 
 ## 前提環境
