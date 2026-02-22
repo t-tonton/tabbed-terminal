@@ -60,6 +60,9 @@ CI must pass on PR:
 - If multiple draft releases exist, workflow keeps only the latest draft automatically.
 - Version bump priority is:
   - `release:major` > `release:minor` > `release:patch`
+- After a PR with `release:*` label is merged into `main`, `.github/workflows/auto-version-bump.yml` opens a version bump PR automatically.
+- Auto-generated version bump PR title format: `chore: bump version to X.Y.Z`
+- Do not remove `release:*` labels from normal PRs; they drive semver bump automation.
 
 ## macOS Release Artifacts
 - Tagged releases (`v*`) in `.github/workflows/release.yml` publish non-DMG artifacts only.
