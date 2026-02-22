@@ -173,4 +173,56 @@ describe('WorkspaceContainer resize behavior', () => {
     expect(layout.h).toBe(3);
     expect(layout.y).toBe(0);
   });
+
+  it('expands right while shrinking the adjacent pane in one drag', () => {
+    useAppStore.setState({
+      workspaces: [createWorkspace([
+        createPane('pane-1', { x: 0, y: 0, w: 1, h: 1 }),
+        createPane('pane-2', { x: 1, y: 0, w: 2, h: 1 }),
+      ])],
+      activeWorkspaceId: 'ws-1',
+    });
+
+    const { container } = render(<WorkspaceContainer />);
+    setGridRect();
+
+    const rightHandle = container.querySelector('div[style*="cursor: e-resize"]');
+    expect(rightHandle).toBeTruthy();
+
+    fireEvent.mouseDown(rightHandle!);
+    fireEvent.mouseMove(document, { clientX: 180, clientY: 20 });
+    fireEvent.mouseUp(document);
+
+    const panes = useAppStore.getState().workspaces[0].panes;
+    const pane1 = panes.find((p) => p.id === 'pane-1')?.layout;
+    const pane2 = panes.find((p) => p.id === 'pane-2')?.layout;
+    expect(pane1).toEqual({ x: 0, y: 0, w: 2, h: 1 });
+    expect(pane2).toEqual({ x: 2, y: 0, w: 1, h: 1 });
+  });
+
+  it('expands downward while shrinking the pane below in one drag', () => {
+    useAppStore.setState({
+      workspaces: [createWorkspace([
+        createPane('pane-1', { x: 0, y: 0, w: 1, h: 1 }),
+        createPane('pane-2', { x: 0, y: 1, w: 1, h: 2 }),
+      ])],
+      activeWorkspaceId: 'ws-1',
+    });
+
+    const { container } = render(<WorkspaceContainer />);
+    setGridRect();
+
+    const bottomHandle = container.querySelector('div[style*="cursor: s-resize"]');
+    expect(bottomHandle).toBeTruthy();
+
+    fireEvent.mouseDown(bottomHandle!);
+    fireEvent.mouseMove(document, { clientX: 20, clientY: 180 });
+    fireEvent.mouseUp(document);
+
+    const panes = useAppStore.getState().workspaces[0].panes;
+    const pane1 = panes.find((p) => p.id === 'pane-1')?.layout;
+    const pane2 = panes.find((p) => p.id === 'pane-2')?.layout;
+    expect(pane1).toEqual({ x: 0, y: 0, w: 1, h: 2 });
+    expect(pane2).toEqual({ x: 0, y: 2, w: 1, h: 1 });
+  });
 });
