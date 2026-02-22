@@ -33,24 +33,37 @@ function parseRelayCommand(
   paneId: string
 ): RelayCommand | null {
   const line = rawLine.trim();
-  if (!line.startsWith('@')) return null;
+  const match = line.match(
+    /(?:^|[\s>*`-])@(all|(?:pane)?\d+(?:,(?:pane)?\d+)*)\s+(.+)$/i
+  );
+  if (!match) return null;
 
-  const [targetToken, ...rest] = line.split(/\s+/);
-  const command = rest.join(' ').trim();
+  const targetToken = match[1];
+  const command = match[2].trim();
   if (!command) return null;
 
   const state = useAppStore.getState();
   const parentTargets = state.managedPaneIdsByParent[paneId] ?? [];
-  if (parentTargets.length === 0) return null;
 
-  if (targetToken.toLowerCase() === '@all') {
-    return { targetPaneIds: parentTargets, command };
+  const workspace = state.workspaces.find((w) => w.panes.some((pane) => pane.id === paneId));
+  if (!workspace) return null;
+
+  const workspaceOtherPaneIds = workspace.panes
+    .map((pane) => pane.id)
+    .filter((id) => id !== paneId);
+
+  if (targetToken.toLowerCase() === 'all') {
+    const targetPaneIds =
+      parentTargets.length > 0
+        ? parentTargets.filter((id) => workspaceOtherPaneIds.includes(id))
+        : workspaceOtherPaneIds;
+    if (targetPaneIds.length === 0) return null;
+    return { targetPaneIds, command };
   }
 
   const requestedNumbers = Array.from(
     new Set(
       targetToken
-        .replace(/^@/i, '')
         .replace(/^pane/i, '')
         .split(',')
         .map((part) => part.trim())
@@ -61,20 +74,17 @@ function parseRelayCommand(
   );
   if (requestedNumbers.length === 0) return null;
 
-  const workspace = state.workspaces.find((w) => w.panes.some((pane) => pane.id === paneId));
-  if (!workspace) return null;
-
   const numberToPaneId = new Map<number, string>();
   for (const pane of workspace.panes) {
-    const match = pane.title.match(/^Pane\s+(\d+)$/i);
-    if (!match) continue;
-    numberToPaneId.set(Number.parseInt(match[1], 10), pane.id);
+    const paneMatch = pane.title.match(/^Pane\s+(\d+)/i);
+    if (!paneMatch) continue;
+    numberToPaneId.set(Number.parseInt(paneMatch[1], 10), pane.id);
   }
 
   const targetPaneIds = requestedNumbers
     .map((num) => numberToPaneId.get(num))
     .filter((id): id is string => Boolean(id))
-    .filter((id) => parentTargets.includes(id));
+    .filter((id) => workspaceOtherPaneIds.includes(id));
 
   if (targetPaneIds.length === 0) return null;
   return { targetPaneIds, command };
