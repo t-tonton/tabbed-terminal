@@ -378,7 +378,7 @@ export const createPanesSlice: StateCreator<
         || hasNoExplicitFocusInActiveWorkspace
         || !shouldIncrementUnread
         ? (state.unreadCountByPane[paneId] ?? 0)
-        : (state.unreadCountByPane[paneId] ?? 0) + 1;
+        : 1;
 
       return {
         terminalHistoryByPane: {

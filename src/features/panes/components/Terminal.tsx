@@ -28,6 +28,23 @@ interface RelayCommand {
   command: string;
 }
 
+function normalizeRelayCommand(raw: string): string {
+  let command = raw.trim();
+  if (command.length < 2) return command;
+
+  const first = command[0];
+  const last = command[command.length - 1];
+  const wrappedBySameQuote =
+    (first === '"' && last === '"') ||
+    (first === "'" && last === "'") ||
+    (first === '`' && last === '`');
+
+  if (wrappedBySameQuote) {
+    command = command.slice(1, -1).trim();
+  }
+  return command;
+}
+
 function parseRelayCommand(
   rawLine: string,
   paneId: string
@@ -39,7 +56,7 @@ function parseRelayCommand(
   if (!match) return null;
 
   const targetToken = match[1];
-  const command = match[2].trim();
+  const command = normalizeRelayCommand(match[2]);
   if (!command) return null;
 
   const state = useAppStore.getState();
