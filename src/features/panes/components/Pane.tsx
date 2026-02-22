@@ -416,6 +416,10 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
                 <span style={{ color: 'var(--text-muted)' }}>{dispatchMessage}</span>
               )}
             </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              Auto relay from parent output: lines starting with <code>@2 ...</code>,{' '}
+              <code>@2,3 ...</code>, or <code>@all ...</code>.
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {childPanes.length === 0 && (

@@ -23,6 +23,63 @@ interface TerminalMatch {
   length: number;
 }
 
+interface RelayCommand {
+  targetPaneIds: string[];
+  command: string;
+}
+
+function parseRelayCommand(
+  rawLine: string,
+  paneId: string
+): RelayCommand | null {
+  const line = rawLine.trim();
+  if (!line.startsWith('@')) return null;
+
+  const [targetToken, ...rest] = line.split(/\s+/);
+  const command = rest.join(' ').trim();
+  if (!command) return null;
+
+  const state = useAppStore.getState();
+  const parentTargets = state.managedPaneIdsByParent[paneId] ?? [];
+  if (parentTargets.length === 0) return null;
+
+  if (targetToken.toLowerCase() === '@all') {
+    return { targetPaneIds: parentTargets, command };
+  }
+
+  const requestedNumbers = Array.from(
+    new Set(
+      targetToken
+        .replace(/^@/i, '')
+        .replace(/^pane/i, '')
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => Number.parseInt(part, 10))
+        .filter((value) => Number.isFinite(value) && value > 0)
+    )
+  );
+  if (requestedNumbers.length === 0) return null;
+
+  const workspace = state.workspaces.find((w) => w.panes.some((pane) => pane.id === paneId));
+  if (!workspace) return null;
+
+  const numberToPaneId = new Map<number, string>();
+  for (const pane of workspace.panes) {
+    const match = pane.title.match(/^Pane\s+(\d+)$/i);
+    if (!match) continue;
+    numberToPaneId.set(Number.parseInt(match[1], 10), pane.id);
+  }
+
+  const targetPaneIds = requestedNumbers
+    .map((num) => numberToPaneId.get(num))
+    .filter((id): id is string => Boolean(id))
+    .filter((id) => parentTargets.includes(id));
+
+  if (targetPaneIds.length === 0) return null;
+  return { targetPaneIds, command };
+}
+
 export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<XTerm | null>(null);
@@ -36,6 +93,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   const [matchCount, setMatchCount] = useState(0);
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const pendingOutputLineRef = useRef('');
 
   const syncTerminalSize = useCallback(() => {
     const container = containerRef.current;
@@ -214,6 +272,33 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
             terminal.write(event.payload);
             terminal.scrollToBottom();
             appendTerminalOutput(paneId, event.payload);
+
+            for (const ch of event.payload) {
+              if (ch === '\r') continue;
+              if (ch !== '\n') {
+                pendingOutputLineRef.current += ch;
+                continue;
+              }
+
+              const line = pendingOutputLineRef.current;
+              pendingOutputLineRef.current = '';
+              const relay = parseRelayCommand(line, paneId);
+              if (!relay) continue;
+
+              void useAppStore
+                .getState()
+                .sendCommandToPaneTargets(paneId, relay.targetPaneIds, relay.command)
+                .then((result) => {
+                  const succeeded = result.successPaneIds.length;
+                  const failed = result.failedPaneIds.length;
+                  terminal.writeln(
+                    `\r\n\x1b[1;36m[relay]\x1b[0m sent=${succeeded} failed=${failed} cmd="${relay.command}"`
+                  );
+                })
+                .catch(() => {
+                  terminal.writeln('\r\n\x1b[1;31m[relay] dispatch failed\x1b[0m');
+                });
+            }
           }
         });
 
@@ -242,9 +327,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
         ptySpawnedRef.current = true;
 
         terminal.onData((data) => {
-          if (!aborted) {
-            invoke('pty_write', { id: paneId, data }).catch(console.error);
-          }
+          if (!aborted) invoke('pty_write', { id: paneId, data }).catch(console.error);
         });
       } catch (err) {
         console.error('Failed to spawn PTY:', err);
