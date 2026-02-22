@@ -28,7 +28,7 @@ const EMPTY_PANES: PaneType[] = [];
 interface GridPaneProps {
   pane: PaneType;
   workspaceId: string;
-  onResizeStart: (paneId: string, direction: 'left' | 'right' | 'bottom' | 'corner') => void;
+  onResizeStart: (paneId: string, direction: 'left' | 'right' | 'top' | 'bottom' | 'corner') => void;
   isResizing: boolean;
 }
 
@@ -157,6 +157,37 @@ function GridPane({ pane, workspaceId, onResizeStart, isResizing }: GridPaneProp
           }}
         />
       </div>
+      {/* Resize handle - top edge */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: '10%',
+          width: '80%',
+          height: '16px',
+          cursor: 'n-resize',
+          zIndex: 10,
+        }}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onResizeStart(pane.id, 'top');
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: '4px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '40px',
+            height: '4px',
+            borderRadius: '2px',
+            backgroundColor: 'var(--text-muted)',
+            opacity: 0.5,
+          }}
+        />
+      </div>
       {/* Resize handle - corner */}
       <div
         style={{
@@ -243,7 +274,7 @@ export function WorkspaceContainer() {
 
   const [resizing, setResizing] = useState<{
     paneId: string;
-    direction: 'left' | 'right' | 'bottom' | 'corner';
+    direction: 'left' | 'right' | 'top' | 'bottom' | 'corner';
     startX: number;
     startY: number;
     startLayout: PaneLayout;
@@ -291,7 +322,7 @@ export function WorkspaceContainer() {
     };
   }, [dragOverCell, draggingPaneId, panes]);
 
-  const handleResizeStart = useCallback((paneId: string, direction: 'left' | 'right' | 'bottom' | 'corner') => {
+  const handleResizeStart = useCallback((paneId: string, direction: 'left' | 'right' | 'top' | 'bottom' | 'corner') => {
     if (!activeWorkspaceId) return;
 
     // Store the initial layout at drag start
@@ -314,15 +345,29 @@ export function WorkspaceContainer() {
       const mouseCol = Math.floor((e.clientX - rect.left) / (cellWidth + GAP));
       const mouseRow = Math.floor((e.clientY - rect.top) / (cellHeight + GAP));
 
-      // Calculate desired width/height based on direction and start position
+      // Calculate desired layout based on direction and start position.
+      let desiredX = startLayout.x;
+      let desiredY = startLayout.y;
       let desiredW = startLayout.w;
       let desiredH = startLayout.h;
+      const startRight = startLayout.x + startLayout.w;
+      const startBottom = startLayout.y + startLayout.h;
 
       if (direction === 'right' || direction === 'corner') {
         desiredW = Math.max(1, Math.min(GRID_COLS - startLayout.x, mouseCol - startLayout.x + 1));
       }
+      if (direction === 'left') {
+        const targetX = Math.max(0, Math.min(startRight - 1, mouseCol));
+        desiredX = targetX;
+        desiredW = startRight - targetX;
+      }
       if (direction === 'bottom' || direction === 'corner') {
         desiredH = Math.max(1, Math.min(GRID_ROWS - startLayout.y, mouseRow - startLayout.y + 1));
+      }
+      if (direction === 'top') {
+        const targetY = Math.max(0, Math.min(startBottom - 1, mouseRow));
+        desiredY = targetY;
+        desiredH = startBottom - targetY;
       }
 
       // Get current state from store
@@ -334,18 +379,10 @@ export function WorkspaceContainer() {
       const otherPanes = workspace.panes
         .filter(p => p.id !== paneId)
         .map(p => ({ id: p.id, layout: { ...p.layout } }));
-
-      // Left resize keeps the right edge fixed and moves x/w.
-      if (direction === 'left') {
-        const fixedRight = startLayout.x + startLayout.w;
-        const targetX = Math.max(0, Math.min(fixedRight - 1, mouseCol));
-        desiredW = fixedRight - targetX;
-      }
-
-      const desiredX = direction === 'left' ? (startLayout.x + startLayout.w - desiredW) : startLayout.x;
       const desiredLayout: PaneLayout = {
         ...startLayout,
         x: desiredX,
+        y: desiredY,
         w: desiredW,
         h: desiredH,
       };
@@ -388,17 +425,23 @@ export function WorkspaceContainer() {
           const pane = colliding.layout;
           const targetRight = target.x + target.w;
           const targetBottom = target.y + target.h;
+          const expandsLeft = target.x < startLayout.x;
+          const expandsRight = targetRight > startRight;
+          const expandsUp = target.y < startLayout.y;
+          const expandsDown = targetBottom > startBottom;
 
           let adjusted = false;
 
-          if (target.x < startLayout.x) {
+          if (expandsLeft) {
             // Expanding to the left: shrink colliding pane from its right edge.
             const newW = target.x - pane.x;
             if (newW >= 1) {
               pane.w = newW;
               adjusted = true;
             }
-          } else if (targetRight > startLayout.x + startLayout.w) {
+          }
+
+          if (!adjusted && expandsRight) {
             // Expanding to the right: shrink colliding pane from its left edge.
             const shrink = targetRight - pane.x;
             const newW = pane.w - shrink;
@@ -409,7 +452,16 @@ export function WorkspaceContainer() {
             }
           }
 
-          if (!adjusted && targetBottom > startLayout.y + startLayout.h) {
+          if (!adjusted && expandsUp) {
+            // Expanding upward: shrink colliding pane from its bottom edge.
+            const newH = target.y - pane.y;
+            if (newH >= 1) {
+              pane.h = newH;
+              adjusted = true;
+            }
+          }
+
+          if (!adjusted && expandsDown) {
             // Expanding downward: shrink colliding pane from its top edge.
             const shrink = targetBottom - pane.y;
             const newH = pane.h - shrink;
@@ -433,17 +485,20 @@ export function WorkspaceContainer() {
       let newW = desiredW;
       let newH = desiredH;
       let newX = desiredLayout.x;
+      let newY = desiredLayout.y;
 
       if (!result.success) {
         // Try smaller sizes to find the largest feasible one.
         const minW = direction === 'left' ? 1 : startLayout.w;
-        const minH = startLayout.h;
+        const minH = direction === 'top' ? 1 : startLayout.h;
         for (let h = desiredH; h >= minH; h--) {
           for (let w = desiredW; w >= minW; w--) {
-            const candidateX = direction === 'left' ? (startLayout.x + startLayout.w - w) : startLayout.x;
+            const candidateX = direction === 'left' ? (startRight - w) : startLayout.x;
+            const candidateY = direction === 'top' ? (startBottom - h) : startLayout.y;
             result = resolveWithNeighborShrink({
               ...startLayout,
               x: candidateX,
+              y: candidateY,
               w,
               h,
             });
@@ -451,21 +506,26 @@ export function WorkspaceContainer() {
               newW = w;
               newH = h;
               newX = candidateX;
+              newY = candidateY;
               break;
             }
           }
           if (result.success) break;
         }
 
-        // If still no success, keep original size (or plain left-shrink when dragging inward).
+        // If still no success, keep original size (or plain edge-shrink when dragging inward).
         if (!result.success) {
           if (direction === 'left' && desiredLayout.x >= startLayout.x) {
             newW = desiredW;
             newX = desiredLayout.x;
+          } else if (direction === 'top' && desiredLayout.y >= startLayout.y) {
+            newH = desiredH;
+            newY = desiredLayout.y;
           } else {
             newW = startLayout.w;
             newH = startLayout.h;
             newX = startLayout.x;
+            newY = startLayout.y;
           }
           result = { success: true, updates: [] };
         }
@@ -473,7 +533,7 @@ export function WorkspaceContainer() {
 
       // Apply all updates
       const allUpdates = [
-        { id: paneId, layout: { ...startLayout, x: newX, w: newW, h: newH } },
+        { id: paneId, layout: { ...startLayout, x: newX, y: newY, w: newW, h: newH } },
         ...result.updates
       ];
 

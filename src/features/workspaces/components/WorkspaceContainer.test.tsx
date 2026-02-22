@@ -231,6 +231,53 @@ describe('WorkspaceContainer resize behavior', () => {
     expect(pane2).toEqual({ x: 0, y: 2, w: 1, h: 1 });
   });
 
+  it('expands left while shrinking the adjacent pane in one drag', () => {
+    useAppStore.setState({
+      workspaces: [createWorkspace([
+        createPane('pane-1', { x: 0, y: 0, w: 2, h: 1 }),
+        createPane('pane-2', { x: 2, y: 0, w: 1, h: 1 }),
+      ])],
+      activeWorkspaceId: 'ws-1',
+    });
+
+    const { container } = render(<WorkspaceContainer />);
+    setGridRect();
+
+    const leftHandles = container.querySelectorAll('div[style*="cursor: w-resize"]');
+    expect(leftHandles.length).toBeGreaterThan(1);
+
+    fireEvent.mouseDown(leftHandles[1]!);
+    fireEvent.mouseMove(document, { clientX: 130, clientY: 20 });
+    fireEvent.mouseUp(document);
+
+    const panes = useAppStore.getState().workspaces[0].panes;
+    const pane1 = panes.find((p) => p.id === 'pane-1')?.layout;
+    const pane2 = panes.find((p) => p.id === 'pane-2')?.layout;
+    expect(pane1).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+    expect(pane2).toEqual({ x: 1, y: 0, w: 2, h: 1 });
+  });
+
+  it('expands pane upward when dragging top resize handle', () => {
+    useAppStore.setState({
+      workspaces: [createWorkspace([createPane('pane-1', { x: 0, y: 1, w: 1, h: 1 })])],
+      activeWorkspaceId: 'ws-1',
+    });
+
+    const { container } = render(<WorkspaceContainer />);
+    setGridRect();
+
+    const topHandle = container.querySelector('div[style*="cursor: n-resize"]');
+    expect(topHandle).toBeTruthy();
+
+    fireEvent.mouseDown(topHandle!);
+    fireEvent.mouseMove(document, { clientX: 20, clientY: 10 });
+    fireEvent.mouseUp(document);
+
+    const layout = useAppStore.getState().workspaces[0].panes[0].layout;
+    expect(layout.y).toBe(0);
+    expect(layout.h).toBe(2);
+  });
+
   it('shows drop preview with the same span as dragged pane', () => {
     useAppStore.setState({
       workspaces: [createWorkspace([
