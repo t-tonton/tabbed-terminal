@@ -19,7 +19,6 @@ A desktop terminal workspace app built with Tauri + React.
 ## Demo
 
 ![Demo](docs/demo/demo.gif)
-
 [Watch demo video](docs/demo/demo.webm)
 
 Local recording command:
@@ -76,8 +75,8 @@ cargo check --manifest-path src-tauri/Cargo.toml
 
 ## Issue Reporting
 
-- Public bugs / feature requests will be managed in this repository.
-- During the internal phase, release task tracking is managed separately.
+- Report bugs and feature requests via:
+  - `https://github.com/t-tonton/tabbed-terminal/issues`
 
 ## Contribution Guide
 
