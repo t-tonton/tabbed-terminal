@@ -5,6 +5,8 @@ import {
   useSensor,
   useSensors,
   useDroppable,
+  type DragOverEvent,
+  type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
 import {
@@ -21,6 +23,7 @@ import type { Pane as PaneType, PaneLayout } from '../../../types';
 const GRID_COLS = 3;
 const GRID_ROWS = 3;
 const GAP = 8;
+const EMPTY_PANES: PaneType[] = [];
 
 interface GridPaneProps {
   pane: PaneType;
@@ -196,7 +199,7 @@ interface EmptyCellProps {
 
 function EmptyCell({ x, y }: EmptyCellProps) {
   const cellId = `empty-${x}-${y}`;
-  const { setNodeRef, isOver } = useDroppable({ id: cellId });
+  const { setNodeRef } = useDroppable({ id: cellId });
 
   return (
     <div
@@ -204,21 +207,39 @@ function EmptyCell({ x, y }: EmptyCellProps) {
       style={{
         gridColumn: `${x + 1}`,
         gridRow: `${y + 1}`,
-        backgroundColor: isOver ? 'var(--accent-muted)' : 'transparent',
+        backgroundColor: 'transparent',
         borderRadius: '8px',
-        border: isOver ? '2px dashed var(--accent)' : '2px dashed transparent',
-        transition: 'all 150ms ease',
+        border: '2px dashed transparent',
       }}
     />
   );
 }
 
+function parseEmptyCellId(id: string): { x: number; y: number } | null {
+  if (!id.startsWith('empty-')) return null;
+  const parts = id.split('-');
+  const x = parseInt(parts[1], 10);
+  const y = parseInt(parts[2], 10);
+  if (Number.isNaN(x) || Number.isNaN(y)) return null;
+  return { x, y };
+}
+
+function layoutsOverlap(a: PaneLayout, b: PaneLayout): boolean {
+  const aRight = a.x + a.w;
+  const aBottom = a.y + a.h;
+  const bRight = b.x + b.w;
+  const bBottom = b.y + b.h;
+  return !(a.x >= bRight || aRight <= b.x || a.y >= bBottom || aBottom <= b.y);
+}
+
 export function WorkspaceContainer() {
   const activeWorkspace = useActiveWorkspace();
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId);
-  const panes = activeWorkspace?.panes ?? [];
+  const panes = activeWorkspace?.panes ?? EMPTY_PANES;
   // Max 9 panes (3x3)
   const visiblePanes = panes.slice(0, 9);
+  const [draggingPaneId, setDraggingPaneId] = useState<string | null>(null);
+  const [dragOverCell, setDragOverCell] = useState<{ x: number; y: number } | null>(null);
 
   const [resizing, setResizing] = useState<{
     paneId: string;
@@ -253,6 +274,22 @@ export function WorkspaceContainer() {
     }
     return empty;
   }, [visiblePanes]);
+
+  const dragPreview = useMemo(() => {
+    if (!draggingPaneId || !dragOverCell) return null;
+    const draggingPane = panes.find((p) => p.id === draggingPaneId);
+    if (!draggingPane) return null;
+
+    const x = Math.min(dragOverCell.x, GRID_COLS - draggingPane.layout.w);
+    const y = Math.min(dragOverCell.y, GRID_ROWS - draggingPane.layout.h);
+    const previewLayout: PaneLayout = { ...draggingPane.layout, x, y };
+
+    const isValid = !panes.some((p) => p.id !== draggingPane.id && layoutsOverlap(previewLayout, p.layout));
+    return {
+      ...previewLayout,
+      isValid,
+    };
+  }, [dragOverCell, draggingPaneId, panes]);
 
   const handleResizeStart = useCallback((paneId: string, direction: 'left' | 'right' | 'bottom' | 'corner') => {
     if (!activeWorkspaceId) return;
@@ -502,6 +539,9 @@ export function WorkspaceContainer() {
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
+    setDraggingPaneId(null);
+    setDragOverCell(null);
+
     const { active, over } = event;
     if (over && active.id !== over.id && activeWorkspaceId) {
       const activePane = panes.find((p) => p.id === active.id);
@@ -509,11 +549,10 @@ export function WorkspaceContainer() {
 
       // Check if dropped on an empty cell
       const overId = String(over.id);
-      if (overId.startsWith('empty-')) {
-        // Parse empty cell coordinates: "empty-x-y"
-        const parts = overId.split('-');
-        const targetX = parseInt(parts[1], 10);
-        const targetY = parseInt(parts[2], 10);
+      const targetCell = parseEmptyCellId(overId);
+      if (targetCell) {
+        const targetX = targetCell.x;
+        const targetY = targetCell.y;
 
         // Clamp position so pane fits within grid bounds
         const newX = Math.min(targetX, GRID_COLS - activePane.layout.w);
@@ -561,10 +600,30 @@ export function WorkspaceContainer() {
     }
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggingPaneId(String(event.active.id));
+    setDragOverCell(null);
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    if (!event.over) {
+      setDragOverCell(null);
+      return;
+    }
+    const targetCell = parseEmptyCellId(String(event.over.id));
+    setDragOverCell(targetCell);
+  };
+
   return (
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragCancel={() => {
+        setDraggingPaneId(null);
+        setDragOverCell(null);
+      }}
       onDragEnd={handleDragEnd}
     >
       <SortableContext items={visiblePanes.map((p) => p.id)} strategy={rectSortingStrategy}>
@@ -587,6 +646,20 @@ export function WorkspaceContainer() {
           {emptyCells.map(({ x, y }) => (
             <EmptyCell key={`empty-${x}-${y}`} x={x} y={y} />
           ))}
+          {dragPreview && (
+            <div
+              data-testid="drag-drop-preview"
+              style={{
+                gridColumn: `${dragPreview.x + 1} / span ${dragPreview.w}`,
+                gridRow: `${dragPreview.y + 1} / span ${dragPreview.h}`,
+                borderRadius: '8px',
+                border: `2px dashed ${dragPreview.isValid ? 'var(--accent)' : 'var(--danger, #ff6b6b)'}`,
+                backgroundColor: dragPreview.isValid ? 'var(--accent-muted)' : 'rgba(255, 107, 107, 0.15)',
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
+          )}
           {/* Render panes */}
           {visiblePanes.map((pane) => (
             <GridPane
