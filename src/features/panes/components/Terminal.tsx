@@ -50,9 +50,7 @@ function parseRelayCommand(
   paneId: string
 ): RelayCommand | null {
   const line = rawLine.trim();
-  const match = line.match(
-    /(?:^|[\s>*`-])@(all|(?:pane)?\d+(?:,(?:pane)?\d+)*)\s+(.+)$/i
-  );
+  const match = line.match(/^(?:[-*]\s*)?@(all|(?:pane)?\d+(?:,(?:pane)?\d+)*)\s+(.+)$/i);
   if (!match) return null;
 
   const targetToken = match[1];
@@ -121,6 +119,8 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   const [activeMatchIndex, setActiveMatchIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const pendingOutputLineRef = useRef('');
+  const pendingInputLineRef = useRef('');
+  const relayInputModeRef = useRef(false);
 
   const syncTerminalSize = useCallback(() => {
     const container = containerRef.current;
@@ -354,7 +354,77 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
         ptySpawnedRef.current = true;
 
         terminal.onData((data) => {
-          if (!aborted) invoke('pty_write', { id: paneId, data }).catch(console.error);
+          if (aborted) return;
+          let bypassRawWrite = false;
+
+          const writeBufferedInputAsPlain = () => {
+            const buffered = pendingInputLineRef.current;
+            pendingInputLineRef.current = '';
+            relayInputModeRef.current = false;
+            if (!buffered) return;
+            invoke('pty_write', { id: paneId, data: `${buffered}\r` }).catch(console.error);
+          };
+
+          for (const ch of data) {
+            if (relayInputModeRef.current) {
+              bypassRawWrite = true;
+              if (ch === '\u007f') {
+                pendingInputLineRef.current = pendingInputLineRef.current.slice(0, -1);
+                continue;
+              }
+
+              if (ch === '\r' || ch === '\n') {
+                const line = pendingInputLineRef.current;
+                const relay = parseRelayCommand(line, paneId);
+                pendingInputLineRef.current = '';
+                relayInputModeRef.current = false;
+
+                if (relay) {
+                  void useAppStore
+                    .getState()
+                    .sendCommandToPaneTargets(paneId, relay.targetPaneIds, relay.command)
+                    .then((result) => {
+                      const succeeded = result.successPaneIds.length;
+                      const failed = result.failedPaneIds.length;
+                      terminal.writeln(
+                        `\r\n\x1b[1;36m[relay]\x1b[0m sent=${succeeded} failed=${failed} cmd="${relay.command}"`
+                      );
+                    })
+                    .catch(() => {
+                      terminal.writeln('\r\n\x1b[1;31m[relay] dispatch failed\x1b[0m');
+                    });
+                } else {
+                  invoke('pty_write', { id: paneId, data: `${line}\r` }).catch(console.error);
+                }
+                continue;
+              }
+
+              pendingInputLineRef.current += ch;
+              continue;
+            }
+
+            const isLineStart = pendingInputLineRef.current.length === 0;
+            if (isLineStart && ch === '@') {
+              bypassRawWrite = true;
+              relayInputModeRef.current = true;
+              pendingInputLineRef.current = '@';
+              continue;
+            }
+
+            if (ch === '\r' || ch === '\n') {
+              pendingInputLineRef.current = '';
+            } else if (ch === '\u007f') {
+              pendingInputLineRef.current = pendingInputLineRef.current.slice(0, -1);
+            } else {
+              pendingInputLineRef.current += ch;
+            }
+          }
+
+          if (!relayInputModeRef.current && !bypassRawWrite) {
+            invoke('pty_write', { id: paneId, data }).catch(console.error);
+          } else if (relayInputModeRef.current && (data.includes('\r') || data.includes('\n'))) {
+            writeBufferedInputAsPlain();
+          }
         });
       } catch (err) {
         console.error('Failed to spawn PTY:', err);
