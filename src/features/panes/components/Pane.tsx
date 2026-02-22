@@ -17,6 +17,7 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
   const updatePane = useAppStore((state) => state.updatePane);
   const focusedPaneId = useAppStore((state) => state.focusedPaneId);
   const setFocusedPane = useAppStore((state) => state.setFocusedPane);
+  const unreadCount = useAppStore((state) => state.unreadCountByPane[paneId] ?? 0);
 
   const isFocused = focusedPaneId === paneId;
 
@@ -131,6 +132,19 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
               <path d="M4 4l8 8M12 4l-8 8" />
             </svg>
           </button>
+          {unreadCount > 0 && !isFocused && (
+            <span
+              title={`${unreadCount} unread output`}
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#fbbf24',
+                boxShadow: '0 0 0 2px rgba(251, 191, 36, 0.2)',
+                flexShrink: 0,
+              }}
+            />
+          )}
         </div>
 
       </div>

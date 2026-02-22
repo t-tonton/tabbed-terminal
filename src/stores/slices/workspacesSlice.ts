@@ -69,12 +69,49 @@ export const createWorkspacesSlice: StateCreator<
 
   deleteWorkspace: (id) => {
     set((state) => {
+      const removedWorkspace = state.workspaces.find((w) => w.id === id);
+      const removedPaneIds = new Set(removedWorkspace?.panes.map((pane) => pane.id) ?? []);
       const newWorkspaces = state.workspaces.filter((w) => w.id !== id);
       const newActiveId =
         state.activeWorkspaceId === id
           ? newWorkspaces[0]?.id ?? null
           : state.activeWorkspaceId;
-      return { workspaces: newWorkspaces, activeWorkspaceId: newActiveId };
+
+      if (removedPaneIds.size === 0) {
+        return { workspaces: newWorkspaces, activeWorkspaceId: newActiveId };
+      }
+
+      const nextTerminalHistoryByPane: Record<string, string> = {};
+      for (const [paneId, history] of Object.entries(state.terminalHistoryByPane)) {
+        if (!removedPaneIds.has(paneId)) {
+          nextTerminalHistoryByPane[paneId] = history;
+        }
+      }
+
+      const nextTerminalRawHistoryByPane: Record<string, string> = {};
+      for (const [paneId, history] of Object.entries(state.terminalRawHistoryByPane)) {
+        if (!removedPaneIds.has(paneId)) {
+          nextTerminalRawHistoryByPane[paneId] = history;
+        }
+      }
+
+      const nextUnreadCountByPane: Record<string, number> = {};
+      for (const [paneId, unread] of Object.entries(state.unreadCountByPane)) {
+        if (!removedPaneIds.has(paneId)) {
+          nextUnreadCountByPane[paneId] = unread;
+        }
+      }
+
+      return {
+        workspaces: newWorkspaces,
+        activeWorkspaceId: newActiveId,
+        focusedPaneId: state.focusedPaneId && removedPaneIds.has(state.focusedPaneId)
+          ? null
+          : state.focusedPaneId,
+        terminalHistoryByPane: nextTerminalHistoryByPane,
+        terminalRawHistoryByPane: nextTerminalRawHistoryByPane,
+        unreadCountByPane: nextUnreadCountByPane,
+      };
     });
   },
 

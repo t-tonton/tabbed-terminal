@@ -19,6 +19,7 @@ import type { Workspace } from '../../types';
 export function TabBar() {
   const workspaces = useAppStore((state) => state.workspaces);
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId);
+  const unreadCountByPane = useAppStore((state) => state.unreadCountByPane);
   const setActiveWorkspace = useAppStore((state) => state.setActiveWorkspace);
   const createWorkspace = useAppStore((state) => state.createWorkspace);
   const deleteWorkspace = useAppStore((state) => state.deleteWorkspace);
@@ -88,6 +89,10 @@ export function TabBar() {
             <WorkspaceTab
               key={workspace.id}
               workspace={workspace}
+              unreadCount={workspace.panes.reduce(
+                (sum, pane) => sum + (unreadCountByPane[pane.id] ?? 0),
+                0
+              )}
               isActive={workspace.id === activeWorkspaceId}
               isHovered={workspace.id === hoveredTabId}
               isEditing={editingTabId === workspace.id}
@@ -147,6 +152,7 @@ export function TabBar() {
 
 interface WorkspaceTabProps {
   workspace: Workspace;
+  unreadCount: number;
   isActive: boolean;
   isHovered: boolean;
   isEditing: boolean;
@@ -164,6 +170,7 @@ interface WorkspaceTabProps {
 
 function WorkspaceTab({
   workspace,
+  unreadCount,
   isActive,
   isHovered,
   isEditing,
@@ -294,6 +301,28 @@ function WorkspaceTab({
           title="Double-click to rename"
         >
           {workspace.name}
+        </span>
+      )}
+
+      {unreadCount > 0 && (
+        <span
+          aria-label={`${workspace.name} unread ${unreadCount}`}
+          style={{
+            minWidth: '18px',
+            height: '18px',
+            borderRadius: '999px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 6px',
+            fontSize: '11px',
+            fontWeight: 700,
+            color: '#0b1225',
+            backgroundColor: '#fbbf24',
+            flexShrink: 0,
+          }}
+        >
+          {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       )}
 
