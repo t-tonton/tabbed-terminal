@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## v0.4.1 - 2026-02-22
+
+### Maintenance
+- Automated patch version bump to `v0.4.1`.
+- Source merged PR: (not provided).
 ## v0.4.0 - 2026-02-22
 
 ### Added
