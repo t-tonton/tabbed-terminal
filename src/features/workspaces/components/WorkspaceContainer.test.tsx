@@ -1,10 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import { WorkspaceContainer } from './WorkspaceContainer';
 import { useAppStore } from '../../../stores';
 
+let dndContextProps: Record<string, unknown> = {};
+
 vi.mock('@dnd-kit/core', () => ({
-  DndContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  DndContext: ({ children, ...props }: { children: React.ReactNode }) => {
+    dndContextProps = props as Record<string, unknown>;
+    return <>{children}</>;
+  },
   closestCenter: vi.fn(),
   PointerSensor: class {},
   useSensor: vi.fn(() => ({})),
@@ -93,6 +98,7 @@ function setGridRect() {
 
 describe('WorkspaceContainer resize behavior', () => {
   beforeEach(() => {
+    dndContextProps = {};
     useAppStore.setState({
       workspaces: [createWorkspace([createPane('pane-1', { x: 0, y: 0, w: 1, h: 1 })])],
       activeWorkspaceId: 'ws-1',
@@ -156,7 +162,6 @@ describe('WorkspaceContainer resize behavior', () => {
     expect(layout.x).toBe(1);
     expect(layout.w).toBe(1);
   });
-
 
   it('expands pane height when dragging bottom resize handle', () => {
     const { container } = render(<WorkspaceContainer />);
@@ -224,5 +229,29 @@ describe('WorkspaceContainer resize behavior', () => {
     const pane2 = panes.find((p) => p.id === 'pane-2')?.layout;
     expect(pane1).toEqual({ x: 0, y: 0, w: 1, h: 2 });
     expect(pane2).toEqual({ x: 0, y: 2, w: 1, h: 1 });
+  });
+
+  it('shows drop preview with the same span as dragged pane', () => {
+    useAppStore.setState({
+      workspaces: [createWorkspace([
+        createPane('pane-1', { x: 0, y: 0, w: 2, h: 1 }),
+      ])],
+      activeWorkspaceId: 'ws-1',
+    });
+
+    const { getByTestId } = render(<WorkspaceContainer />);
+
+    act(() => {
+      (dndContextProps.onDragStart as (event: { active: { id: string } }) => void)({
+        active: { id: 'pane-1' },
+      });
+      (dndContextProps.onDragOver as (event: { over: { id: string } }) => void)({
+        over: { id: 'empty-2-2' },
+      });
+    });
+
+    const preview = getByTestId('drag-drop-preview');
+    expect(preview.style.gridColumn).toBe('2 / span 2');
+    expect(preview.style.gridRow).toBe('3 / span 1');
   });
 });
