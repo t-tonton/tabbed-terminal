@@ -1,8 +1,16 @@
-name: Auto Version Bump PR
+name: Create Version Bump PR
 
 on:
-  pull_request_target:
-    types: [closed]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semver bump type
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -10,74 +18,33 @@ permissions:
 
 jobs:
   create-version-bump-pr:
-    if: >-
-      github.event.pull_request.merged == true &&
-      github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Determine release bump from labels
-        id: decide
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            const labels = (pr.labels || []).map((l) => l.name);
-            const title = pr.title || '';
-
-            if (title.toLowerCase().startsWith('chore: bump version to ')) {
-              core.info('Skip: version bump PR merged.');
-              core.setOutput('should_bump', 'false');
-              return;
-            }
-
-            const bump = labels.includes('release:major')
-              ? 'major'
-              : labels.includes('release:minor')
-                ? 'minor'
-                : labels.includes('release:patch')
-                  ? 'patch'
-                  : '';
-
-            if (!bump) {
-              core.info('Skip: no release:* label found.');
-              core.setOutput('should_bump', 'false');
-              return;
-            }
-
-            core.setOutput('should_bump', 'true');
-            core.setOutput('bump', bump);
-
       - name: Checkout main
-        if: steps.decide.outputs.should_bump == 'true'
         uses: actions/checkout@v4
         with:
           ref: main
 
       - name: Setup Node
-        if: steps.decide.outputs.should_bump == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 24
 
       - name: Apply version bump
-        if: steps.decide.outputs.should_bump == 'true'
         id: bump
-        run: node .github/scripts/bump-version.mjs "${{ steps.decide.outputs.bump }}"
+        run: node .github/scripts/bump-version.mjs "${{ inputs.bump }}"
 
       - name: Create version bump PR
-        if: steps.decide.outputs.should_bump == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           branch: chore/auto-version-bump-v${{ steps.bump.outputs.new_version }}
           title: chore: bump version to ${{ steps.bump.outputs.new_version }}
           body: |
             ## Summary
-            - auto-generated version bump PR based on merged PR label `${{ steps.decide.outputs.bump }}`
+            - manual workflow dispatch created this version bump PR
+            - bump type: `${{ inputs.bump }}`
             - updates Node/Tauri/Rust version fields consistently
-
-            ## Source
-            - merged PR: #${{ github.event.pull_request.number }}
           labels: |
             release:patch
           commit-message: chore: bump version to ${{ steps.bump.outputs.new_version }}
