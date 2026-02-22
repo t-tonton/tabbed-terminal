@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { loadWorkspaceSnapshot } from '../services/persistence';
 import { useAppStore } from '../stores';
 
 export function useInitialize() {
@@ -11,17 +10,7 @@ export function useInitialize() {
   useEffect(() => {
     if (initializedRef.current) return;
 
-    const snapshot = loadWorkspaceSnapshot();
-    if (snapshot && snapshot.workspaces.length > 0) {
-      useAppStore.setState({
-        workspaces: snapshot.workspaces,
-        activeWorkspaceId: snapshot.activeWorkspaceId,
-      });
-      initializedRef.current = true;
-      return;
-    }
-
-    // Create default workspace if none exists
+    // Always start fresh with a default workspace.
     if (workspaces.length === 0) {
       const workspaceId = createWorkspace('blank', 'Workspace 1');
       markClean(workspaceId);
