@@ -50,6 +50,12 @@ The generated file is saved to `docs/demo/demo.webm`.
 - Workspace save/restore currently uses local storage (Tauri fs persistence is planned)
 - Build shows chunk-size warning in Vite output (not a release blocker)
 
+## Requirements
+
+- Node.js `22.12+` or `24.x` (LTS recommended: `24.x`)
+- npm `10+`
+- Rust toolchain (`cargo`) for Tauri build/check
+
 ## Development
 
 ```bash
