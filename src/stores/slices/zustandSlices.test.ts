@@ -26,6 +26,8 @@ beforeEach(() => {
     terminalHistoryByPane: {},
     terminalRawHistoryByPane: {},
     unreadCountByPane: {},
+    managedPaneIdsByParent: {},
+    paneDispatchLogsByParent: {},
     isWorkspaceSearchOpen: false,
   });
 });
@@ -70,6 +72,20 @@ describe('workspacesSlice', () => {
       terminalHistoryByPane: { [paneId]: 'abc' },
       terminalRawHistoryByPane: { [paneId]: 'abc' },
       unreadCountByPane: { [paneId]: 3 },
+      managedPaneIdsByParent: { [paneId]: ['other-pane'] },
+      paneDispatchLogsByParent: {
+        [paneId]: [
+          {
+            id: 'log-1',
+            parentPaneId: paneId,
+            targetPaneIds: ['other-pane'],
+            command: 'ls',
+            createdAt: new Date().toISOString(),
+            status: 'success',
+            failedPaneIds: [],
+          },
+        ],
+      },
     });
 
     useAppStore.getState().deleteWorkspace('ws-2');
@@ -79,6 +95,8 @@ describe('workspacesSlice', () => {
     expect(nextState.terminalHistoryByPane[paneId]).toBeUndefined();
     expect(nextState.terminalRawHistoryByPane[paneId]).toBeUndefined();
     expect(nextState.unreadCountByPane[paneId]).toBeUndefined();
+    expect(nextState.managedPaneIdsByParent[paneId]).toBeUndefined();
+    expect(nextState.paneDispatchLogsByParent[paneId]).toBeUndefined();
   });
 
   it('reorders workspaces by index', () => {
@@ -120,6 +138,8 @@ describe('panesSlice', () => {
       terminalHistoryByPane: {},
       terminalRawHistoryByPane: {},
       unreadCountByPane: {},
+      managedPaneIdsByParent: {},
+      paneDispatchLogsByParent: {},
     });
   });
 
@@ -187,6 +207,27 @@ describe('panesSlice', () => {
     useAppStore.getState().deletePane('ws-1', paneId);
 
     expect(useAppStore.getState().terminalHistoryByPane[paneId]).toBeUndefined();
+  });
+
+  it('stores managed child pane ids and excludes self', () => {
+    const parentPaneId = useAppStore.getState().createPane('ws-1', { title: 'Parent' });
+    const childPaneId = useAppStore.getState().createPane('ws-1', { title: 'Child' });
+
+    useAppStore
+      .getState()
+      .setManagedPaneIds(parentPaneId, [parentPaneId, childPaneId, childPaneId]);
+
+    expect(useAppStore.getState().managedPaneIdsByParent[parentPaneId]).toEqual([childPaneId]);
+  });
+
+  it('removes managed references when child pane is deleted', () => {
+    const parentPaneId = useAppStore.getState().createPane('ws-1', { title: 'Parent' });
+    const childPaneId = useAppStore.getState().createPane('ws-1', { title: 'Child' });
+
+    useAppStore.getState().setManagedPaneIds(parentPaneId, [childPaneId]);
+    useAppStore.getState().deletePane('ws-1', childPaneId);
+
+    expect(useAppStore.getState().managedPaneIdsByParent[parentPaneId]).toEqual([]);
   });
 
   it('increments unread count only for inactive pane output', () => {

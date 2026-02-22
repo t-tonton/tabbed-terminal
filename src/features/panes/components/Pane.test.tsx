@@ -48,6 +48,11 @@ describe('Pane rename and close behavior', () => {
       workspaces: [createWorkspaceWithPane()],
       activeWorkspaceId: 'ws-1',
       focusedPaneId: null,
+      terminalHistoryByPane: {},
+      terminalRawHistoryByPane: {},
+      unreadCountByPane: {},
+      managedPaneIdsByParent: {},
+      paneDispatchLogsByParent: {},
     });
   });
 

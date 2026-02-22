@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAppStore } from '../../../stores';
 import { Terminal } from './Terminal';
 
@@ -9,21 +9,73 @@ interface PaneProps {
   dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
+const EMPTY_IDS: string[] = [];
+const EMPTY_LOGS: {
+  id: string;
+  parentPaneId: string;
+  targetPaneIds: string[];
+  command: string;
+  createdAt: string;
+  status: 'success' | 'partial' | 'failed';
+  failedPaneIds: string[];
+}[] = [];
+
+function getLatestVisibleLine(raw: string): string {
+  const lines = raw
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return lines.length > 0 ? lines[lines.length - 1] : '(no output yet)';
+}
+
+function formatTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${date.getHours().toString().padStart(2, '0')}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+}
+
 export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps) {
   const [editingTitle, setEditingTitle] = useState(false);
   const [draftTitle, setDraftTitle] = useState(title);
+  const [commandDraft, setCommandDraft] = useState('');
+  const [orchestrationOpen, setOrchestrationOpen] = useState(false);
+  const [isDispatching, setIsDispatching] = useState(false);
+  const [dispatchMessage, setDispatchMessage] = useState('');
 
   const deletePane = useAppStore((state) => state.deletePane);
   const updatePane = useAppStore((state) => state.updatePane);
   const focusedPaneId = useAppStore((state) => state.focusedPaneId);
   const setFocusedPane = useAppStore((state) => state.setFocusedPane);
   const unreadCount = useAppStore((state) => state.unreadCountByPane[paneId] ?? 0);
+  const workspaces = useAppStore((state) => state.workspaces);
+  const managedPaneIds = useAppStore((state) => state.managedPaneIdsByParent[paneId] ?? EMPTY_IDS);
+  const setManagedPaneIds = useAppStore((state) => state.setManagedPaneIds);
+  const sendCommandToPaneTargets = useAppStore((state) => state.sendCommandToPaneTargets);
+  const paneDispatchLogs = useAppStore(
+    (state) => state.paneDispatchLogsByParent[paneId] ?? EMPTY_LOGS
+  );
+  const terminalHistoryByPane = useAppStore((state) => state.terminalHistoryByPane);
+
+  const workspace = workspaces.find((w) => w.id === workspaceId);
+  const childPanes = useMemo(
+    () => (workspace?.panes ?? []).filter((pane) => pane.id !== paneId),
+    [workspace, paneId]
+  );
+
+  const selectedManagedPaneIds = useMemo(() => {
+    const childPaneIdSet = new Set(childPanes.map((pane) => pane.id));
+    return managedPaneIds.filter((id) => childPaneIdSet.has(id));
+  }, [childPanes, managedPaneIds]);
 
   const isFocused = focusedPaneId === paneId;
 
   const handlePaneClick = () => {
     setFocusedPane(paneId);
   };
+
   const startTitleEdit = () => {
     setEditingTitle(true);
     setDraftTitle(title);
@@ -35,6 +87,37 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
       updatePane(workspaceId, paneId, { title: trimmed });
     }
     setEditingTitle(false);
+  };
+
+  const toggleManagedPane = (targetPaneId: string) => {
+    const next = selectedManagedPaneIds.includes(targetPaneId)
+      ? selectedManagedPaneIds.filter((id) => id !== targetPaneId)
+      : [...selectedManagedPaneIds, targetPaneId];
+    setManagedPaneIds(paneId, next);
+  };
+
+  const sendCommand = async (targetPaneIds: string[]) => {
+    const command = commandDraft.trim();
+    if (command.length === 0 || targetPaneIds.length === 0 || isDispatching) return;
+
+    if (targetPaneIds.length > 1) {
+      const ok = window.confirm(
+        `${targetPaneIds.length} panes to receive this command. Continue?`
+      );
+      if (!ok) return;
+    }
+
+    setIsDispatching(true);
+    setDispatchMessage('');
+
+    try {
+      const result = await sendCommandToPaneTargets(paneId, targetPaneIds, command);
+      const successCount = result.successPaneIds.length;
+      const failedCount = result.failedPaneIds.length;
+      setDispatchMessage(`Sent: ${successCount}, Failed: ${failedCount}`);
+    } finally {
+      setIsDispatching(false);
+    }
   };
 
   return (
@@ -51,7 +134,6 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
         boxShadow: isFocused ? '0 0 0 1px rgba(134, 164, 255, 0.25) inset' : 'none',
       }}
     >
-      {/* Header - drag handle */}
       <div
         className="flex items-center justify-between px-3 py-2 shrink-0"
         style={{
@@ -112,6 +194,29 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
             )}
           </h3>
           <button
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOrchestrationOpen((prev) => !prev);
+              setFocusedPane(paneId);
+            }}
+            title="Toggle orchestration"
+            style={{
+              width: '24px',
+              height: '24px',
+              border: '1px solid var(--border-default)',
+              borderRadius: '4px',
+              backgroundColor: orchestrationOpen ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+              color: 'var(--text-muted)',
+              fontSize: '12px',
+              flexShrink: 0,
+            }}
+          >
+            O
+          </button>
+          <button
             className="flex items-center justify-center rounded transition-colors"
             style={{
               width: '24px',
@@ -122,7 +227,6 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
               flexShrink: 0,
             }}
             onMouseDown={(e) => {
-              // Header is the drag handle; keep close button click from starting drag.
               e.stopPropagation();
             }}
             onPointerDown={(e) => {
@@ -161,17 +265,158 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
             />
           )}
         </div>
-
       </div>
 
-      {/* Terminal */}
+      {orchestrationOpen && (
+        <div
+          style={{
+            borderBottom: '1px solid var(--border-subtle)',
+            backgroundColor: 'rgba(10, 18, 38, 0.85)',
+            padding: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            maxHeight: '220px',
+            overflow: 'auto',
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              value={commandDraft}
+              onChange={(e) => setCommandDraft(e.target.value)}
+              placeholder="Command to send to child panes"
+              style={{
+                flex: 1,
+                height: '28px',
+                borderRadius: '4px',
+                border: '1px solid var(--border-default)',
+                backgroundColor: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                padding: '0 8px',
+                fontSize: '12px',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => sendCommand(selectedManagedPaneIds)}
+              disabled={isDispatching || selectedManagedPaneIds.length === 0 || commandDraft.trim().length === 0}
+              style={{
+                height: '28px',
+                borderRadius: '4px',
+                border: '1px solid var(--border-default)',
+                backgroundColor: '#1d4ed8',
+                color: '#fff',
+                padding: '0 8px',
+                fontSize: '12px',
+              }}
+            >
+              Send Selected
+            </button>
+            <button
+              type="button"
+              onClick={() => sendCommand(childPanes.map((pane) => pane.id))}
+              disabled={isDispatching || childPanes.length === 0 || commandDraft.trim().length === 0}
+              style={{
+                height: '28px',
+                borderRadius: '4px',
+                border: '1px solid var(--border-default)',
+                backgroundColor: 'transparent',
+                color: 'var(--text-primary)',
+                padding: '0 8px',
+                fontSize: '12px',
+              }}
+            >
+              Send All
+            </button>
+          </div>
+
+          {dispatchMessage && (
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{dispatchMessage}</div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {childPanes.length === 0 && (
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No child panes in this workspace.</div>
+            )}
+            {childPanes.map((childPane) => {
+              const selected = selectedManagedPaneIds.includes(childPane.id);
+              const latestOutput = getLatestVisibleLine(terminalHistoryByPane[childPane.id] ?? '');
+              return (
+                <div
+                  key={childPane.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '4px',
+                    padding: '6px',
+                  }}
+                >
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => toggleManagedPane(childPane.id)}
+                    />
+                    <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{childPane.title}</span>
+                  </label>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      maxWidth: '48%',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                    title={latestOutput}
+                  >
+                    {latestOutput}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => sendCommand([childPane.id])}
+                    disabled={isDispatching || commandDraft.trim().length === 0}
+                    style={{
+                      height: '24px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-default)',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-primary)',
+                      padding: '0 6px',
+                      fontSize: '11px',
+                    }}
+                  >
+                    Send
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {paneDispatchLogs.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '6px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                Dispatch Log
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {paneDispatchLogs.slice(0, 5).map((log) => (
+                  <div key={log.id} style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    [{formatTime(log.createdAt)}] {log.status.toUpperCase()} ({log.targetPaneIds.length}): {log.command}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <div style={{ position: 'absolute', inset: 0 }}>
-          <Terminal
-            paneId={paneId}
-            isFocused={isFocused}
-            onFocus={handlePaneClick}
-          />
+          <Terminal paneId={paneId} isFocused={isFocused} onFocus={handlePaneClick} />
         </div>
       </div>
     </div>
