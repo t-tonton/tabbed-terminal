@@ -112,8 +112,22 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
             )}
           </h3>
           <button
-            className="w-6 h-6 flex items-center justify-center rounded transition-colors"
-            style={{ color: 'var(--text-muted)', marginLeft: '2px' }}
+            className="flex items-center justify-center rounded transition-colors"
+            style={{
+              width: '24px',
+              height: '24px',
+              color: 'var(--text-muted)',
+              marginLeft: '0px',
+              transform: 'translateX(-2px)',
+              flexShrink: 0,
+            }}
+            onMouseDown={(e) => {
+              // Header is the drag handle; keep close button click from starting drag.
+              e.stopPropagation();
+            }}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+            }}
             onClick={(e) => {
               e.stopPropagation();
               deletePane(workspaceId, paneId);
@@ -126,6 +140,7 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
               e.currentTarget.style.backgroundColor = 'transparent';
               e.currentTarget.style.color = 'var(--text-muted)';
             }}
+            aria-label="Close pane"
             title="Close pane"
           >
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">

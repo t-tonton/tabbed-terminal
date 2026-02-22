@@ -42,6 +42,7 @@ describe('workspacesSlice', () => {
     expect(nextState.workspaces[0].name).toBe('Workspace 1');
     expect(nextState.workspaces[1].name).toBe('Workspace 2');
     expect(nextState.activeWorkspaceId).toBe(secondId);
+    expect(nextState.focusedPaneId).toBe(nextState.workspaces[1].panes[0].id);
     expect(firstId).not.toBe(secondId);
   });
 
@@ -95,6 +96,19 @@ describe('workspacesSlice', () => {
     const nextState = useAppStore.getState();
     expect(nextState.workspaces.map((w) => w.id)).toEqual(['ws-2', 'ws-3', 'ws-1']);
     expect(nextState.activeWorkspaceId).toBe('ws-2');
+  });
+
+  it('sets first pane focus when switching active workspace', () => {
+    const ws1 = useAppStore.getState().createWorkspace('blank', 'Workspace 1');
+    const ws2 = useAppStore.getState().createWorkspace('blank', 'Workspace 2');
+    const ws1PaneId = useAppStore.getState().workspaces.find((w) => w.id === ws1)?.panes[0].id;
+    const ws2PaneId = useAppStore.getState().workspaces.find((w) => w.id === ws2)?.panes[0].id;
+
+    useAppStore.getState().setActiveWorkspace(ws1);
+    expect(useAppStore.getState().focusedPaneId).toBe(ws1PaneId);
+
+    useAppStore.getState().setActiveWorkspace(ws2);
+    expect(useAppStore.getState().focusedPaneId).toBe(ws2PaneId);
   });
 });
 
@@ -182,17 +196,42 @@ describe('panesSlice', () => {
     useAppStore.getState().appendTerminalOutput(paneId, 'active output');
     expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(0);
 
-    useAppStore.getState().setFocusedPane(null);
+    const ws2Id = useAppStore.getState().createWorkspace('blank', 'Workspace 2');
+    useAppStore.getState().setActiveWorkspace(ws2Id);
     useAppStore.getState().appendTerminalOutput(paneId, 'inactive output');
     expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(1);
   });
 
+  it('does not increment unread when active workspace has no explicit focused pane yet', () => {
+    const paneId = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
+    useAppStore.setState({ focusedPaneId: null });
+
+    useAppStore.getState().appendTerminalOutput(paneId, 'initial prompt');
+    expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(0);
+  });
+
+  it('does not increment unread for first chunk on a newly created inactive pane', () => {
+    const pane1Id = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
+    const pane2Id = useAppStore.getState().createPane('ws-1', { title: 'Pane 2' });
+    useAppStore.getState().setFocusedPane(pane1Id);
+
+    useAppStore.getState().appendTerminalOutput(pane2Id, '% ');
+    expect(useAppStore.getState().unreadCountByPane[pane2Id]).toBe(0);
+
+    useAppStore.getState().appendTerminalOutput(pane2Id, 'build done');
+    expect(useAppStore.getState().unreadCountByPane[pane2Id]).toBe(1);
+  });
+
   it('clears unread count when pane is focused', () => {
     const paneId = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
+    const ws2Id = useAppStore.getState().createWorkspace('blank', 'Workspace 2');
+    useAppStore.getState().setActiveWorkspace(ws2Id);
 
     useAppStore.getState().appendTerminalOutput(paneId, 'inactive output');
+    useAppStore.getState().appendTerminalOutput(paneId, 'inactive output 2');
     expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(1);
 
+    useAppStore.getState().setActiveWorkspace('ws-1');
     useAppStore.getState().setFocusedPane(paneId);
     expect(useAppStore.getState().unreadCountByPane[paneId]).toBe(0);
   });
