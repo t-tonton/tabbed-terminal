@@ -114,10 +114,11 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
           <button
             className="flex items-center justify-center rounded transition-colors"
             style={{
-              width: '28px',
+              width: '24px',
               height: '24px',
               color: 'var(--text-muted)',
-              marginLeft: '2px',
+              marginLeft: '0px',
+              transform: 'translateX(-2px)',
               flexShrink: 0,
             }}
             onMouseDown={(e) => {
