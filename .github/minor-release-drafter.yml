@@ -1,0 +1,34 @@
+name-template: 'Minor line draft: v$RESOLVED_VERSION'
+tag-template: 'minor-v$RESOLVED_VERSION'
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+no-changes-template: '- No user-facing changes in this cycle.'
+template: |
+  ## Changes
+  $CHANGES
+
+categories:
+  - title: 'Features'
+    labels:
+      - feature
+  - title: 'Fixes'
+    labels:
+      - bug
+  - title: 'Maintenance'
+    labels:
+      - chore
+      - documentation
+
+version-resolver:
+  major:
+    labels:
+      - 'release:major'
+  minor:
+    labels:
+      - 'release:minor'
+  patch:
+    labels:
+      - 'release:patch'
+  default: patch
+
+exclude-labels:
+  - skip-changelog

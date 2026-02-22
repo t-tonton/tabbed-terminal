@@ -6,6 +6,7 @@ on:
       - main
   pull_request_target:
     types: [opened, reopened, synchronize, labeled, unlabeled, ready_for_review]
+  workflow_dispatch:
 
 concurrency:
   group: release-drafter-${{ github.repository }}
@@ -17,10 +18,13 @@ permissions:
 
 jobs:
   update-release-draft:
+    outputs:
+      tag_name: ${{ steps.release_drafter_main.outputs.tag_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Update draft release
         uses: release-drafter/release-drafter@v6
+        id: release_drafter_main
         with:
           config-name: release-drafter.yml
         env:
@@ -42,19 +46,105 @@ jobs:
               .filter((release) => release.draft)
               .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-            if (drafts.length <= 1) {
-              core.info(`Draft release count is ${drafts.length}. No cleanup needed.`);
+            if (drafts.length === 0) {
+              core.info('No draft releases found. No cleanup needed.');
               return;
             }
 
-            const [latest, ...staleDrafts] = drafts;
-            core.info(`Keeping latest draft #${latest.id} (${latest.tag_name || latest.name}).`);
-
-            for (const release of staleDrafts) {
-              await github.rest.repos.deleteRelease({
-                owner,
-                repo,
-                release_id: release.id,
-              });
-              core.info(`Deleted stale draft #${release.id} (${release.tag_name || release.name}).`);
+            const groups = new Map();
+            for (const draft of drafts) {
+              const tag = draft.tag_name || '';
+              const key = tag.startsWith('minor-v') ? 'minor' : 'main';
+              if (!groups.has(key)) groups.set(key, []);
+              groups.get(key).push(draft);
             }
+
+            for (const [key, groupDrafts] of groups.entries()) {
+              if (groupDrafts.length <= 1) {
+                core.info(`Draft group "${key}" count is ${groupDrafts.length}. No cleanup needed.`);
+                continue;
+              }
+
+              const [latest, ...staleDrafts] = groupDrafts;
+              core.info(`Keeping latest "${key}" draft #${latest.id} (${latest.tag_name || latest.name}).`);
+
+              for (const release of staleDrafts) {
+                await github.rest.repos.deleteRelease({
+                  owner,
+                  repo,
+                  release_id: release.id,
+                });
+                core.info(`Deleted stale "${key}" draft #${release.id} (${release.tag_name || release.name}).`);
+              }
+            }
+
+  update-minor-release-draft:
+    if: github.event_name != 'pull_request_target'
+    needs: update-release-draft
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse latest release draft semver
+        id: semver
+        env:
+          TAG_NAME: ${{ needs.update-release-draft.outputs.tag_name }}
+        run: |
+          tag="$TAG_NAME"
+          if [ -z "$tag" ]; then
+            echo "tag_name is empty; skipping minor release draft."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version="${tag#v}"
+          if [ "$version" = "$tag" ]; then
+            echo "tag_name must start with v: $tag"
+            exit 1
+          fi
+
+          IFS='.' read -r major minor patch <<< "$version"
+          if [ -z "$major" ] || [ -z "$minor" ] || [ -z "$patch" ]; then
+            echo "invalid semver: $version"
+            exit 1
+          fi
+
+          echo "major=$major" >> "$GITHUB_OUTPUT"
+          echo "minor=$minor" >> "$GITHUB_OUTPUT"
+          echo "patch=$patch" >> "$GITHUB_OUTPUT"
+          echo "release_branch=releases/v${major}.${minor}.x" >> "$GITHUB_OUTPUT"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Create or fast-forward minor release branch
+        if: steps.semver.outputs.skip == 'false'
+        env:
+          RELEASE_BRANCH: ${{ steps.semver.outputs.release_branch }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin "$RELEASE_BRANCH" >/dev/null; then
+            git fetch origin "$RELEASE_BRANCH:$RELEASE_BRANCH"
+            git switch "$RELEASE_BRANCH"
+            git merge --ff-only "$GIT_SHA"
+          else
+            git switch -c "$RELEASE_BRANCH" "$GIT_SHA"
+          fi
+
+          git push origin "HEAD:$RELEASE_BRANCH"
+
+      - name: Update minor-line draft release
+        if: steps.semver.outputs.skip == 'false'
+        uses: release-drafter/release-drafter@v6
+        with:
+          config-name: minor-release-drafter.yml
+          commitish: ${{ steps.semver.outputs.release_branch }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
