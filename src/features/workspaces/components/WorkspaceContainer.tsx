@@ -302,199 +302,141 @@ export function WorkspaceContainer() {
       if (direction === 'left') {
         const fixedRight = startLayout.x + startLayout.w;
         const targetX = Math.max(0, Math.min(fixedRight - 1, mouseCol));
-        let resolvedX = startLayout.x;
-
-        // Moving the left edge to the right is always a shrink inside current bounds.
-        if (targetX >= startLayout.x) {
-          resolvedX = targetX;
-        } else {
-          // Moving left may collide with other panes, so find the first non-overlapping position.
-          for (let candidateX = targetX; candidateX <= startLayout.x; candidateX++) {
-            const candidateW = fixedRight - candidateX;
-            const overlaps = otherPanes.some((pane) => {
-              const pRight = pane.layout.x + pane.layout.w;
-              const pBottom = pane.layout.y + pane.layout.h;
-              const cRight = candidateX + candidateW;
-              const cBottom = startLayout.y + startLayout.h;
-              return !(
-                candidateX >= pRight ||
-                cRight <= pane.layout.x ||
-                startLayout.y >= pBottom ||
-                cBottom <= pane.layout.y
-              );
-            });
-            if (!overlaps) {
-              resolvedX = candidateX;
-              break;
-            }
-          }
-        }
-
-        state.updatePaneLayouts(activeWorkspaceId, [
-          {
-            id: paneId,
-            layout: {
-              ...startLayout,
-              x: resolvedX,
-              w: fixedRight - resolvedX,
-            },
-          },
-        ]);
-        return;
+        desiredW = fixedRight - targetX;
       }
 
-      // Check which cells the resizing pane wants to occupy
-      const wantedCells = new Set<string>();
-      for (let row = startLayout.y; row < startLayout.y + desiredH; row++) {
-        for (let col = startLayout.x; col < startLayout.x + desiredW; col++) {
-          wantedCells.add(`${col},${row}`);
-        }
-      }
-
-      // Find panes that collide and try to push them
-      const pushPanes = (targetW: number, targetH: number): { success: boolean; updates: { id: string; layout: PaneLayout }[] } => {
-        const updates: { id: string; layout: PaneLayout }[] = [];
-        const pushedPanes = otherPanes.map(p => ({ id: p.id, layout: { ...p.layout } }));
-
-        // Target area cells
-        const targetCells = new Set<string>();
-        for (let row = startLayout.y; row < startLayout.y + targetH; row++) {
-          for (let col = startLayout.x; col < startLayout.x + targetW; col++) {
-            targetCells.add(`${col},${row}`);
-          }
-        }
-
-        // Find and push colliding panes
-        for (const pane of pushedPanes) {
-          // Check if pane collides with target area
-          let collidesHorizontally = false;
-          let collidesVertically = false;
-
-          for (let row = pane.layout.y; row < pane.layout.y + pane.layout.h; row++) {
-            for (let col = pane.layout.x; col < pane.layout.x + pane.layout.w; col++) {
-              if (targetCells.has(`${col},${row}`)) {
-                // Determine collision direction
-                if (col >= startLayout.x + startLayout.w && col < startLayout.x + targetW) {
-                  collidesHorizontally = true;
-                }
-                if (row >= startLayout.y + startLayout.h && row < startLayout.y + targetH) {
-                  collidesVertically = true;
-                }
-                // If pane was already in the original area, push based on resize direction
-                if (col >= startLayout.x && col < startLayout.x + startLayout.w &&
-                    row >= startLayout.y && row < startLayout.y + startLayout.h) {
-                  if (direction === 'right') collidesHorizontally = true;
-                  else if (direction === 'bottom') collidesVertically = true;
-                  else { collidesHorizontally = true; collidesVertically = true; }
-                }
-              }
-            }
-          }
-
-          if (collidesHorizontally || collidesVertically) {
-            let pushed = false;
-
-            // Try to push right first for horizontal collision
-            if (collidesHorizontally && !collidesVertically) {
-              const pushAmount = (startLayout.x + targetW) - pane.layout.x;
-              const newX = pane.layout.x + pushAmount;
-              if (newX + pane.layout.w <= GRID_COLS) {
-                pane.layout.x = newX;
-                pushed = true;
-              }
-            }
-            // Try to push down for vertical collision
-            else if (collidesVertically && !collidesHorizontally) {
-              const pushAmount = (startLayout.y + targetH) - pane.layout.y;
-              const newY = pane.layout.y + pushAmount;
-              if (newY + pane.layout.h <= GRID_ROWS) {
-                pane.layout.y = newY;
-                pushed = true;
-              }
-            }
-            // For corner/both directions, try down first then right
-            else {
-              // Try push down
-              const pushDownAmount = (startLayout.y + targetH) - pane.layout.y;
-              const newY = pane.layout.y + pushDownAmount;
-              if (newY + pane.layout.h <= GRID_ROWS) {
-                pane.layout.y = newY;
-                pushed = true;
-              } else {
-                // Try push right
-                const pushRightAmount = (startLayout.x + targetW) - pane.layout.x;
-                const newX = pane.layout.x + pushRightAmount;
-                if (newX + pane.layout.w <= GRID_COLS) {
-                  pane.layout.x = newX;
-                  pushed = true;
-                }
-              }
-            }
-
-            if (!pushed) {
-              return { success: false, updates: [] };
-            }
-            updates.push({ id: pane.id, layout: { ...pane.layout } });
-          }
-        }
-
-        // Verify no overlaps after pushing (include the resizing pane's target area)
-        const finalGrid = new Map<string, string>();
-
-        // First, add the resizing pane's target cells
-        for (let row = startLayout.y; row < startLayout.y + targetH; row++) {
-          for (let col = startLayout.x; col < startLayout.x + targetW; col++) {
-            const key = `${col},${row}`;
-            finalGrid.set(key, paneId);
-          }
-        }
-
-        // Then check pushed panes for overlaps
-        for (const pane of pushedPanes) {
-          for (let row = pane.layout.y; row < pane.layout.y + pane.layout.h; row++) {
-            for (let col = pane.layout.x; col < pane.layout.x + pane.layout.w; col++) {
-              const key = `${col},${row}`;
-              if (finalGrid.has(key)) {
-                return { success: false, updates: [] };
-              }
-              finalGrid.set(key, pane.id);
-            }
-          }
-        }
-
-        return { success: true, updates };
+      const desiredX = direction === 'left' ? (startLayout.x + startLayout.w - desiredW) : startLayout.x;
+      const desiredLayout: PaneLayout = {
+        ...startLayout,
+        x: desiredX,
+        w: desiredW,
+        h: desiredH,
       };
 
-      // Try to resize with push
-      let result = pushPanes(desiredW, desiredH);
+      const overlaps = (a: PaneLayout, b: PaneLayout) => {
+        const aRight = a.x + a.w;
+        const aBottom = a.y + a.h;
+        const bRight = b.x + b.w;
+        const bBottom = b.y + b.h;
+        return !(a.x >= bRight || aRight <= b.x || a.y >= bBottom || aBottom <= b.y);
+      };
+
+      // Find panes that collide and shrink neighbors to make room in one action.
+      const resolveWithNeighborShrink = (target: PaneLayout): { success: boolean; updates: { id: string; layout: PaneLayout }[] } => {
+        const updates: { id: string; layout: PaneLayout }[] = [];
+        const adjustedPanes = otherPanes.map((p) => ({ id: p.id, layout: { ...p.layout } }));
+        if (adjustedPanes.length === 0) {
+          return { success: true, updates };
+        }
+
+        // Shrink panes from the colliding edge. This keeps each adjusted pane inside its original bounds.
+        for (let pass = 0; pass < adjustedPanes.length * 3; pass++) {
+          const colliding = adjustedPanes.find((pane) => overlaps(target, pane.layout));
+          if (!colliding) {
+            for (const pane of adjustedPanes) {
+              const original = otherPanes.find((p) => p.id === pane.id);
+              if (!original) continue;
+              if (
+                original.layout.x !== pane.layout.x ||
+                original.layout.y !== pane.layout.y ||
+                original.layout.w !== pane.layout.w ||
+                original.layout.h !== pane.layout.h
+              ) {
+                updates.push({ id: pane.id, layout: { ...pane.layout } });
+              }
+            }
+            return { success: true, updates };
+          }
+
+          const pane = colliding.layout;
+          const targetRight = target.x + target.w;
+          const targetBottom = target.y + target.h;
+
+          let adjusted = false;
+
+          if (target.x < startLayout.x) {
+            // Expanding to the left: shrink colliding pane from its right edge.
+            const newW = target.x - pane.x;
+            if (newW >= 1) {
+              pane.w = newW;
+              adjusted = true;
+            }
+          } else if (targetRight > startLayout.x + startLayout.w) {
+            // Expanding to the right: shrink colliding pane from its left edge.
+            const shrink = targetRight - pane.x;
+            const newW = pane.w - shrink;
+            if (newW >= 1) {
+              pane.x += shrink;
+              pane.w = newW;
+              adjusted = true;
+            }
+          }
+
+          if (!adjusted && targetBottom > startLayout.y + startLayout.h) {
+            // Expanding downward: shrink colliding pane from its top edge.
+            const shrink = targetBottom - pane.y;
+            const newH = pane.h - shrink;
+            if (newH >= 1) {
+              pane.y += shrink;
+              pane.h = newH;
+              adjusted = true;
+            }
+          }
+
+          if (!adjusted) {
+            return { success: false, updates: [] };
+          }
+        }
+
+        return { success: false, updates: [] };
+      };
+
+      // Try requested size first, then back off until neighbor shrinking is feasible.
+      let result = resolveWithNeighborShrink(desiredLayout);
       let newW = desiredW;
       let newH = desiredH;
+      let newX = desiredLayout.x;
 
       if (!result.success) {
-        // Try smaller sizes
-        for (let h = desiredH; h >= startLayout.h; h--) {
-          for (let w = desiredW; w >= startLayout.w; w--) {
-            result = pushPanes(w, h);
+        // Try smaller sizes to find the largest feasible one.
+        const minW = direction === 'left' ? 1 : startLayout.w;
+        const minH = startLayout.h;
+        for (let h = desiredH; h >= minH; h--) {
+          for (let w = desiredW; w >= minW; w--) {
+            const candidateX = direction === 'left' ? (startLayout.x + startLayout.w - w) : startLayout.x;
+            result = resolveWithNeighborShrink({
+              ...startLayout,
+              x: candidateX,
+              w,
+              h,
+            });
             if (result.success) {
               newW = w;
               newH = h;
+              newX = candidateX;
               break;
             }
           }
           if (result.success) break;
         }
 
-        // If still no success, allow shrinking without push
+        // If still no success, keep original size (or plain left-shrink when dragging inward).
         if (!result.success) {
-          newW = desiredW < startLayout.w ? desiredW : startLayout.w;
-          newH = desiredH < startLayout.h ? desiredH : startLayout.h;
+          if (direction === 'left' && desiredLayout.x >= startLayout.x) {
+            newW = desiredW;
+            newX = desiredLayout.x;
+          } else {
+            newW = startLayout.w;
+            newH = startLayout.h;
+            newX = startLayout.x;
+          }
           result = { success: true, updates: [] };
         }
       }
 
       // Apply all updates
       const allUpdates = [
-        { id: paneId, layout: { ...startLayout, w: newW, h: newH } },
+        { id: paneId, layout: { ...startLayout, x: newX, w: newW, h: newH } },
         ...result.updates
       ];
 
