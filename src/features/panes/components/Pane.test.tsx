@@ -67,10 +67,10 @@ describe('Pane rename and close behavior', () => {
     await user.dblClick(screen.getByText('Pane 1'));
     const input = screen.getByDisplayValue('Pane 1');
     await user.clear(input);
-    await user.type(input, 'Build Panel{Enter}');
+    await user.type(input, 'Build Pane{Enter}');
 
     const updatedTitle = useAppStore.getState().workspaces[0].panes[0].title;
-    expect(updatedTitle).toBe('Build Panel');
+    expect(updatedTitle).toBe('Build Pane');
   });
 
   it('does not update title when input is blank', async () => {
