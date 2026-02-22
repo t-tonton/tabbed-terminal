@@ -28,6 +28,45 @@ interface RelayCommand {
   command: string;
 }
 
+function stripAnsi(text: string): string {
+  let out = '';
+
+  for (let i = 0; i < text.length; i += 1) {
+    const code = text.charCodeAt(i);
+    if (code !== 27) {
+      out += text[i];
+      continue;
+    }
+
+    const next = text[i + 1];
+    if (next === '[') {
+      i += 2;
+      while (i < text.length) {
+        const c = text.charCodeAt(i);
+        if (c >= 64 && c <= 126) break;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (next === ']') {
+      i += 2;
+      while (i < text.length) {
+        const c = text.charCodeAt(i);
+        if (c === 7) break;
+        if (c === 27 && text[i + 1] === '\\') {
+          i += 1;
+          break;
+        }
+        i += 1;
+      }
+      continue;
+    }
+  }
+
+  return out;
+}
+
 function normalizeRelayCommand(raw: string): string {
   let command = raw.trim();
   if (command.length < 2) return command;
@@ -49,8 +88,10 @@ function parseRelayCommand(
   rawLine: string,
   paneId: string
 ): RelayCommand | null {
-  const line = rawLine.trim();
-  const match = line.match(/^(?:[-*]\s*)?@(all|(?:pane)?\d+(?:,(?:pane)?\d+)*)\s+(.+)$/i);
+  const line = stripAnsi(rawLine).trim();
+  const match = line.match(
+    /^(?:(?:[-*•]|\d+[.)]|>)\s*)?@(all|(?:pane)?\d+(?:,(?:pane)?\d+)*)[\s\u3000]+(.+)$/i
+  );
   if (!match) return null;
 
   const targetToken = match[1];
