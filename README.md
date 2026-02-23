@@ -10,6 +10,7 @@ A desktop terminal workspace app built with Tauri + React.
 - Reorder workspace tabs with drag and drop
 - Multiple panes per workspace
 - Pane rename / close / resize
+- Configurable pane grid size (`3x3` / `4x4`)
 - Native terminal copy & paste (`Cmd/Ctrl + C`, `Cmd/Ctrl + V`)
 - Snippets picker for frequently used commands
   - Save / edit / delete snippets
@@ -38,6 +39,7 @@ The generated file is saved to `docs/demo/demo.webm`.
 - `Cmd/Ctrl + W`: Close current workspace
 - `Cmd/Ctrl + N`: New pane
 - `Cmd/Ctrl + Shift + P`: Open snippets picker
+- `Cmd/Ctrl + Shift + G`: Open grid settings (`3x3` / `4x4`)
 - `Cmd/Ctrl + Shift + R`: Open relay window
 - `Cmd/Ctrl + F`: Find in focused pane
 - `Cmd/Ctrl + Shift + F`: Search across all pane history in workspaces

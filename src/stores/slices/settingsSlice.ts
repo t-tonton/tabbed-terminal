@@ -9,6 +9,7 @@ export interface SettingsSlice {
   defaultMaxTokens: number;
   isSaving: boolean;
   terminalFontSize: number;
+  paneGridSize: 3 | 4;
 
   // Actions
   setApiKeyConfigured: (configured: boolean) => void;
@@ -16,6 +17,7 @@ export interface SettingsSlice {
   setDefaultTemperature: (temp: number) => void;
   setDefaultMaxTokens: (tokens: number) => void;
   setIsSaving: (saving: boolean) => void;
+  setPaneGridSize: (size: 3 | 4) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   resetZoom: () => void;
@@ -38,6 +40,7 @@ export const createSettingsSlice: StateCreator<
   defaultMaxTokens: DEFAULT_MODEL_CONFIG.maxTokens,
   isSaving: false,
   terminalFontSize: DEFAULT_FONT_SIZE,
+  paneGridSize: 3,
 
   setApiKeyConfigured: (configured) => {
     set({ apiKeyConfigured: configured });
@@ -57,6 +60,38 @@ export const createSettingsSlice: StateCreator<
 
   setIsSaving: (saving) => {
     set({ isSaving: saving });
+  },
+
+  setPaneGridSize: (size) => {
+    set((state) => ({
+      paneGridSize: size,
+      workspaces: state.workspaces.map((workspace) => {
+        let workspaceChanged = false;
+        const panes = workspace.panes.map((pane) => {
+          const x = Math.max(0, Math.min(size - 1, pane.layout.x));
+          const y = Math.max(0, Math.min(size - 1, pane.layout.y));
+          const w = Math.max(1, Math.min(size - x, pane.layout.w));
+          const h = Math.max(1, Math.min(size - y, pane.layout.h));
+          const changed =
+            x !== pane.layout.x
+            || y !== pane.layout.y
+            || w !== pane.layout.w
+            || h !== pane.layout.h;
+          if (!changed) return pane;
+          workspaceChanged = true;
+          return {
+            ...pane,
+            layout: { x, y, w, h },
+          };
+        });
+        if (!workspaceChanged) return workspace;
+        return {
+          ...workspace,
+          panes,
+          dirty: true,
+        };
+      }),
+    }));
   },
 
   zoomIn: () => {

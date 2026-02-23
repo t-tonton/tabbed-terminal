@@ -122,8 +122,8 @@ export const createPanesSlice: StateCreator<
     const existingPanes = workspace?.panes || [];
 
     // Build occupancy grid to find empty cell
-    const GRID_COLS = 3;
-    const GRID_ROWS = 3;
+    const GRID_COLS = get().paneGridSize;
+    const GRID_ROWS = get().paneGridSize;
     const grid = new Set<string>();
 
     for (const p of existingPanes) {
@@ -220,8 +220,8 @@ export const createPanesSlice: StateCreator<
     const existingPanes = workspace?.panes || [];
 
     // Build occupancy grid to find empty cell
-    const GRID_COLS = 3;
-    const GRID_ROWS = 3;
+    const GRID_COLS = get().paneGridSize;
+    const GRID_ROWS = get().paneGridSize;
     const grid = new Set<string>();
 
     for (const p of existingPanes) {
@@ -294,8 +294,8 @@ export const createPanesSlice: StateCreator<
   },
 
   updatePaneLayouts: (workspaceId, layouts) => {
-    const GRID_COLS = 3;
-    const GRID_ROWS = 3;
+    const GRID_COLS = get().paneGridSize;
+    const GRID_ROWS = get().paneGridSize;
 
     // Validate and clamp layouts to grid bounds
     const validatedLayouts = layouts.map((l) => ({
