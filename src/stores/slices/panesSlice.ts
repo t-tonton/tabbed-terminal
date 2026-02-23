@@ -437,9 +437,12 @@ export const createPanesSlice: StateCreator<
 
   sendCommandToPaneTargets: async (parentPaneId, targetPaneIds, command) => {
     const normalizedCommand = command.endsWith('\n') ? command : `${command}\n`;
-    const uniqueTargetPaneIds = Array.from(
-      new Set(targetPaneIds.filter((id) => id !== parentPaneId))
-    );
+    const uniqueRequestedPaneIds = Array.from(new Set(targetPaneIds));
+    const withoutParent = uniqueRequestedPaneIds.filter((id) => id !== parentPaneId);
+    // Keep historical behavior (exclude parent) when other targets exist.
+    // If parent is the only target (single-pane mode), allow self-send.
+    const uniqueTargetPaneIds =
+      withoutParent.length > 0 ? withoutParent : uniqueRequestedPaneIds;
     if (uniqueTargetPaneIds.length === 0 || normalizedCommand.trim().length === 0) {
       return { successPaneIds: [], failedPaneIds: [] };
     }

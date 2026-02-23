@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import { RelayWindow, isRelayView } from './features/relay'
 
 function renderFatal(message: string) {
   const root = document.getElementById('root');
@@ -30,7 +31,7 @@ window.addEventListener('unhandledrejection', (event) => {
 // StrictMode causes double mount/unmount which kills PTY
 try {
   createRoot(document.getElementById('root')!).render(
-    <App />
+    isRelayView() ? <RelayWindow /> : <App />
   );
 } catch (error) {
   const message = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);

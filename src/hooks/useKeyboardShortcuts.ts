@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { openRelayWindow } from '../features/relay';
 import { useAppStore } from '../stores';
 
 export function useKeyboardShortcuts() {
@@ -13,6 +14,7 @@ export function useKeyboardShortcuts() {
   const resetZoom = useAppStore((state) => state.resetZoom);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
   const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
+  const openRelayPanel = useAppStore((state) => state.openRelayPanel);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -36,6 +38,16 @@ export function useKeyboardShortcuts() {
       if (isMod && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         openSnippetPicker();
+        return;
+      }
+
+      // Cmd/Ctrl+Shift+R: Open relay window/panel
+      if (isMod && e.shiftKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault();
+        void (async () => {
+          const opened = await openRelayWindow();
+          if (!opened) openRelayPanel();
+        })();
         return;
       }
 
@@ -153,5 +165,6 @@ export function useKeyboardShortcuts() {
     resetZoom,
     openSnippetPicker,
     openWorkspaceSearch,
+    openRelayPanel,
   ]);
 }

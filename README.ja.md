@@ -15,6 +15,9 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
   - スニペットの保存 / 編集 / 削除
   - スニペット検索
   - コマンドをクリップボードへコピー
+- Relay コマンド送信ウィンドウ
+  - Tauri 実行時は独立ウィンドウとして表示
+  - アクティブPaneから他Paneへコマンド送信（1Pane時は自Paneに送信）
 
 ## ショートカット
 
@@ -22,6 +25,7 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 - `Cmd/Ctrl + W`: 現在のワークスペースを閉じる
 - `Cmd/Ctrl + N`: 新しいペイン
 - `Cmd/Ctrl + Shift + P`: Snippets Picker を開く
+- `Cmd/Ctrl + Shift + R`: Relay ウィンドウを開く
 - `Cmd/Ctrl + F`: フォーカス中のPane内検索
 - `Cmd/Ctrl + Shift + F`: ワークスペース内の全Pane履歴を横断検索
 - `Cmd/Ctrl + 1..9`: 番号でワークスペース切り替え
@@ -30,7 +34,6 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 
 ## 既知の制限
 
-- サイドバーは現時点で利用中の機能のみ表示（検索 / 新規Pane / Snippets）
 - Snippets Picker は現状モーダル表示（表示中は背景操作をロック）
 - スニペットは現時点ではローカルブラウザストレージに保存
 - Vite のビルドで chunk-size warning が出る（リリースブロッカーではない）

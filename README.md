@@ -15,6 +15,9 @@ A desktop terminal workspace app built with Tauri + React.
   - Save / edit / delete snippets
   - Search snippets
   - Copy command to clipboard
+- Relay command sender window
+  - Open as a separate desktop window in Tauri
+  - Sends command from active pane to other panes (or current pane in single-pane mode)
 
 ## Demo
 
@@ -35,6 +38,7 @@ The generated file is saved to `docs/demo/demo.webm`.
 - `Cmd/Ctrl + W`: Close current workspace
 - `Cmd/Ctrl + N`: New pane
 - `Cmd/Ctrl + Shift + P`: Open snippets picker
+- `Cmd/Ctrl + Shift + R`: Open relay window
 - `Cmd/Ctrl + F`: Find in focused pane
 - `Cmd/Ctrl + Shift + F`: Search across all pane history in workspaces
 - `Cmd/Ctrl + 1..9`: Switch workspace by number
@@ -43,7 +47,6 @@ The generated file is saved to `docs/demo/demo.webm`.
 
 ## Known Limitations
 
-- Sidebar currently shows only active features (search / new pane / snippets)
 - Snippets picker is currently modal (background is locked while open)
 - Snippets are stored in local browser storage for now
 - Build shows chunk-size warning in Vite output (not a release blocker)
