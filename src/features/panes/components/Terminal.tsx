@@ -242,9 +242,8 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
         ptySpawnedRef.current = true;
 
         terminal.onData((data) => {
-          if (!aborted) {
-            invoke('pty_write', { id: paneId, data }).catch(console.error);
-          }
+          if (aborted) return;
+          invoke('pty_write', { id: paneId, data }).catch(console.error);
         });
       } catch (err) {
         console.error('Failed to spawn PTY:', err);
@@ -298,6 +297,11 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       syncTerminalSize();
     }
   }, [terminalFontSize, syncTerminalSize]);
+
+  const handleContainerClick = useCallback(() => {
+    onFocus();
+    terminalRef.current?.focus();
+  }, [onFocus]);
 
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative' }}>
@@ -417,7 +421,8 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
           borderTop: '1px solid rgba(150, 170, 255, 0.08)',
           overflow: 'hidden',
         }}
-        onClick={onFocus}
+        onMouseDown={handleContainerClick}
+        onClick={handleContainerClick}
       />
     </div>
   );

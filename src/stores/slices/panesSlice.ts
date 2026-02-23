@@ -4,6 +4,17 @@ import { generateId, DEFAULT_MODEL_CONFIG } from '../../utils';
 import type { AppStore } from '../appStore';
 
 const TERMINAL_HISTORY_LIMIT = 240000;
+const ORCHESTRATION_LOG_LIMIT = 200;
+
+export interface PaneCommandDispatchLog {
+  id: string;
+  parentPaneId: string;
+  targetPaneIds: string[];
+  command: string;
+  createdAt: string;
+  status: 'success' | 'partial' | 'failed';
+  failedPaneIds: string[];
+}
 
 function normalizeTerminalChunk(chunk: string): string {
   let out = '';
@@ -56,6 +67,8 @@ export interface PanesSlice {
   terminalHistoryByPane: Record<string, string>;
   terminalRawHistoryByPane: Record<string, string>;
   unreadCountByPane: Record<string, number>;
+  managedPaneIdsByParent: Record<string, string[]>;
+  paneDispatchLogsByParent: Record<string, PaneCommandDispatchLog[]>;
 
   // Actions
   createPane: (workspaceId: string, options?: CreatePaneOptions) => string;
@@ -70,6 +83,12 @@ export interface PanesSlice {
   appendTerminalOutput: (paneId: string, chunk: string) => void;
   clearTerminalHistory: (paneId: string) => void;
   markPaneRead: (paneId: string) => void;
+  setManagedPaneIds: (parentPaneId: string, managedPaneIds: string[]) => void;
+  sendCommandToPaneTargets: (
+    parentPaneId: string,
+    targetPaneIds: string[],
+    command: string
+  ) => Promise<{ successPaneIds: string[]; failedPaneIds: string[] }>;
 
   // Messages
   addMessage: (workspaceId: string, paneId: string, message: Message) => void;
@@ -94,6 +113,8 @@ export const createPanesSlice: StateCreator<
   terminalHistoryByPane: {},
   terminalRawHistoryByPane: {},
   unreadCountByPane: {},
+  managedPaneIdsByParent: {},
+  paneDispatchLogsByParent: {},
 
   createPane: (workspaceId, options = {}) => {
     const id = generateId();
@@ -161,9 +182,19 @@ export const createPanesSlice: StateCreator<
       const nextHistory = { ...state.terminalHistoryByPane };
       const nextRawHistory = { ...state.terminalRawHistoryByPane };
       const nextUnread = { ...state.unreadCountByPane };
+      const nextManaged = { ...state.managedPaneIdsByParent };
+      const nextLogs = { ...state.paneDispatchLogsByParent };
       delete nextHistory[paneId];
       delete nextRawHistory[paneId];
       delete nextUnread[paneId];
+      delete nextManaged[paneId];
+      delete nextLogs[paneId];
+
+      for (const [parentId, managedPaneIds] of Object.entries(nextManaged)) {
+        const filtered = managedPaneIds.filter((id) => id !== paneId);
+        if (filtered.length === managedPaneIds.length) continue;
+        nextManaged[parentId] = filtered;
+      }
 
       return {
         workspaces: state.workspaces.map((w) =>
@@ -175,6 +206,8 @@ export const createPanesSlice: StateCreator<
         terminalHistoryByPane: nextHistory,
         terminalRawHistoryByPane: nextRawHistory,
         unreadCountByPane: nextUnread,
+        managedPaneIdsByParent: nextManaged,
+        paneDispatchLogsByParent: nextLogs,
       };
     });
   },
@@ -345,7 +378,7 @@ export const createPanesSlice: StateCreator<
         || hasNoExplicitFocusInActiveWorkspace
         || !shouldIncrementUnread
         ? (state.unreadCountByPane[paneId] ?? 0)
-        : (state.unreadCountByPane[paneId] ?? 0) + 1;
+        : 1;
 
       return {
         terminalHistoryByPane: {
@@ -390,6 +423,80 @@ export const createPanesSlice: StateCreator<
         },
       };
     });
+  },
+
+  setManagedPaneIds: (parentPaneId, managedPaneIds) => {
+    const unique = Array.from(new Set(managedPaneIds.filter((id) => id !== parentPaneId)));
+    set((state) => ({
+      managedPaneIdsByParent: {
+        ...state.managedPaneIdsByParent,
+        [parentPaneId]: unique,
+      },
+    }));
+  },
+
+  sendCommandToPaneTargets: async (parentPaneId, targetPaneIds, command) => {
+    const normalizedCommand = command.endsWith('\n') ? command : `${command}\n`;
+    const uniqueRequestedPaneIds = Array.from(new Set(targetPaneIds));
+    const withoutParent = uniqueRequestedPaneIds.filter((id) => id !== parentPaneId);
+    // Keep historical behavior (exclude parent) when other targets exist.
+    // If parent is the only target (single-pane mode), allow self-send.
+    const uniqueTargetPaneIds =
+      withoutParent.length > 0 ? withoutParent : uniqueRequestedPaneIds;
+    if (uniqueTargetPaneIds.length === 0 || normalizedCommand.trim().length === 0) {
+      return { successPaneIds: [], failedPaneIds: [] };
+    }
+
+    const { invoke } = await import('@tauri-apps/api/core');
+    const successPaneIds: string[] = [];
+    const failedPaneIds: string[] = [];
+
+    set((state) => {
+      const nextSending = new Set(state.sendingPaneIds);
+      for (const paneId of uniqueTargetPaneIds) nextSending.add(paneId);
+      return { sendingPaneIds: nextSending };
+    });
+
+    for (const paneId of uniqueTargetPaneIds) {
+      try {
+        await invoke('pty_write', { id: paneId, data: normalizedCommand });
+        successPaneIds.push(paneId);
+      } catch {
+        failedPaneIds.push(paneId);
+      }
+    }
+
+    set((state) => {
+      const nextSending = new Set(state.sendingPaneIds);
+      for (const paneId of uniqueTargetPaneIds) nextSending.delete(paneId);
+
+      const prevLogs = state.paneDispatchLogsByParent[parentPaneId] ?? [];
+      const entry: PaneCommandDispatchLog = {
+        id: generateId(),
+        parentPaneId,
+        targetPaneIds: uniqueTargetPaneIds,
+        command: normalizedCommand.trimEnd(),
+        createdAt: new Date().toISOString(),
+        status:
+          failedPaneIds.length === 0
+            ? 'success'
+            : successPaneIds.length === 0
+              ? 'failed'
+              : 'partial',
+        failedPaneIds,
+      };
+      const nextLogs = [entry, ...prevLogs].slice(0, ORCHESTRATION_LOG_LIMIT);
+
+      return {
+        sendingPaneIds: nextSending,
+        paneDispatchLogsByParent: {
+          ...state.paneDispatchLogsByParent,
+          [parentPaneId]: nextLogs,
+        },
+      };
+    });
+
+    return { successPaneIds, failedPaneIds };
   },
 
   addMessage: (workspaceId, paneId, message) => {

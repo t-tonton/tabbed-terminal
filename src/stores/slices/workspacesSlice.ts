@@ -103,6 +103,26 @@ export const createWorkspacesSlice: StateCreator<
         }
       }
 
+      const nextManagedPaneIdsByParent: Record<string, string[]> = {};
+      for (const [parentPaneId, managedPaneIds] of Object.entries(state.managedPaneIdsByParent)) {
+        if (removedPaneIds.has(parentPaneId)) continue;
+        nextManagedPaneIdsByParent[parentPaneId] = managedPaneIds.filter(
+          (paneId) => !removedPaneIds.has(paneId)
+        );
+      }
+
+      const nextPaneDispatchLogsByParent: typeof state.paneDispatchLogsByParent = {};
+      for (const [parentPaneId, logs] of Object.entries(state.paneDispatchLogsByParent)) {
+        if (removedPaneIds.has(parentPaneId)) continue;
+        nextPaneDispatchLogsByParent[parentPaneId] = logs
+          .map((log) => ({
+            ...log,
+            targetPaneIds: log.targetPaneIds.filter((paneId) => !removedPaneIds.has(paneId)),
+            failedPaneIds: log.failedPaneIds.filter((paneId) => !removedPaneIds.has(paneId)),
+          }))
+          .filter((log) => log.targetPaneIds.length > 0);
+      }
+
       const newActiveWorkspace = newWorkspaces.find((w) => w.id === newActiveId);
       const nextFocusedPaneId =
         state.focusedPaneId &&
@@ -118,6 +138,8 @@ export const createWorkspacesSlice: StateCreator<
         terminalHistoryByPane: nextTerminalHistoryByPane,
         terminalRawHistoryByPane: nextTerminalRawHistoryByPane,
         unreadCountByPane: nextUnreadCountByPane,
+        managedPaneIdsByParent: nextManagedPaneIdsByParent,
+        paneDispatchLogsByParent: nextPaneDispatchLogsByParent,
       };
     });
   },

@@ -1,10 +1,12 @@
 import { useAppStore, useActiveWorkspace } from '../../stores';
+import { openRelayWindow } from '../../features/relay';
 
 export function IconSidebar() {
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId);
   const createPane = useAppStore((state) => state.createPane);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
   const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
+  const openRelayPanel = useAppStore((state) => state.openRelayPanel);
   const activeWorkspace = useActiveWorkspace();
 
   const handleNewPane = () => {
@@ -13,6 +15,13 @@ export function IconSidebar() {
         title: `Pane ${(activeWorkspace?.panes.length ?? 0) + 1}`,
       });
     }
+  };
+
+  const handleRelay = () => {
+    void (async () => {
+      const opened = await openRelayWindow();
+      if (!opened) openRelayPanel();
+    })();
   };
 
   return (
@@ -51,6 +60,13 @@ export function IconSidebar() {
         label="Snippets"
         shortcut="⌘⇧P"
         onClick={openSnippetPicker}
+      />
+
+      <SidebarButton
+        icon={<RelayIcon />}
+        label="Relay"
+        shortcut="⌘⇧R"
+        onClick={handleRelay}
       />
     </div>
   );
@@ -121,6 +137,19 @@ function SnippetsIcon() {
       <path d="M6 7h6" />
       <path d="M6 10h6" />
       <path d="M6 13h4" />
+    </svg>
+  );
+}
+
+function RelayIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h5" />
+      <path d="M10 6l2-2m-2 2l2 2" />
+      <path d="M15 12h-5" />
+      <path d="M8 12L6 10m2 2l-2 2" />
+      <circle cx="3" cy="6" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }

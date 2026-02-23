@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import { useAppStore } from '../stores';
 
@@ -95,4 +95,22 @@ describe('useKeyboardShortcuts', () => {
     expect(useAppStore.getState().isWorkspaceSearchOpen).toBe(true);
   });
 
+  it('opens relay panel on Cmd/Ctrl+Shift+R in non-Tauri runtime', async () => {
+    useAppStore.setState({ isRelayPanelOpen: false });
+    render(<KeyboardShortcutHarness />);
+
+    const event = new KeyboardEvent('keydown', {
+      key: 'r',
+      metaKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    await waitFor(() => {
+      expect(useAppStore.getState().isRelayPanelOpen).toBe(true);
+    });
+  });
 });

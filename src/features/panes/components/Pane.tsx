@@ -24,6 +24,7 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
   const handlePaneClick = () => {
     setFocusedPane(paneId);
   };
+
   const startTitleEdit = () => {
     setEditingTitle(true);
     setDraftTitle(title);
@@ -51,7 +52,6 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
         boxShadow: isFocused ? '0 0 0 1px rgba(134, 164, 255, 0.25) inset' : 'none',
       }}
     >
-      {/* Header - drag handle */}
       <div
         className="flex items-center justify-between px-3 py-2 shrink-0"
         style={{
@@ -111,18 +111,17 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
               title
             )}
           </h3>
+
           <button
             className="flex items-center justify-center rounded transition-colors"
             style={{
               width: '24px',
               height: '24px',
               color: 'var(--text-muted)',
-              marginLeft: '0px',
               transform: 'translateX(-2px)',
               flexShrink: 0,
             }}
             onMouseDown={(e) => {
-              // Header is the drag handle; keep close button click from starting drag.
               e.stopPropagation();
             }}
             onPointerDown={(e) => {
@@ -147,6 +146,7 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
               <path d="M4 4l8 8M12 4l-8 8" />
             </svg>
           </button>
+
           {unreadCount > 0 && !isFocused && (
             <span
               title={`${unreadCount} unread output`}
@@ -161,17 +161,11 @@ export function Pane({ workspaceId, paneId, title, dragHandleProps }: PaneProps)
             />
           )}
         </div>
-
       </div>
 
-      {/* Terminal */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <div style={{ position: 'absolute', inset: 0 }}>
-          <Terminal
-            paneId={paneId}
-            isFocused={isFocused}
-            onFocus={handlePaneClick}
-          />
+          <Terminal paneId={paneId} isFocused={isFocused} onFocus={handlePaneClick} />
         </div>
       </div>
     </div>
