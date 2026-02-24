@@ -30,6 +30,7 @@ describe('useKeyboardShortcuts', () => {
       workspaces: [createWorkspace()],
       activeWorkspaceId: 'ws-1',
       isWorkspaceSearchOpen: false,
+      isGridSettingsOpen: false,
     });
   });
 
@@ -112,5 +113,21 @@ describe('useKeyboardShortcuts', () => {
     await waitFor(() => {
       expect(useAppStore.getState().isRelayPanelOpen).toBe(true);
     });
+  });
+
+  it('opens grid settings on Cmd/Ctrl+Shift+G', () => {
+    render(<KeyboardShortcutHarness />);
+
+    const event = new KeyboardEvent('keydown', {
+      key: 'g',
+      metaKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(useAppStore.getState().isGridSettingsOpen).toBe(true);
   });
 });

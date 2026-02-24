@@ -13,6 +13,7 @@ export function useKeyboardShortcuts() {
   const zoomOut = useAppStore((state) => state.zoomOut);
   const resetZoom = useAppStore((state) => state.resetZoom);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
+  const openGridSettings = useAppStore((state) => state.openGridSettings);
   const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
   const openRelayPanel = useAppStore((state) => state.openRelayPanel);
 
@@ -48,6 +49,13 @@ export function useKeyboardShortcuts() {
           const opened = await openRelayWindow();
           if (!opened) openRelayPanel();
         })();
+        return;
+      }
+
+      // Cmd/Ctrl+Shift+G: Open grid settings
+      if (isMod && e.shiftKey && e.key.toLowerCase() === 'g') {
+        e.preventDefault();
+        openGridSettings();
         return;
       }
 
@@ -164,6 +172,7 @@ export function useKeyboardShortcuts() {
     zoomOut,
     resetZoom,
     openSnippetPicker,
+    openGridSettings,
     openWorkspaceSearch,
     openRelayPanel,
   ]);

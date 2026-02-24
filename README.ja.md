@@ -10,6 +10,7 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 - タブのドラッグ＆ドロップによるワークスペース並び替え
 - ワークスペースごとに複数ペイン
 - ペインのリネーム / クローズ / リサイズ
+- ペイングリッドサイズの切り替え（`3x3` / `4x4`）
 - ネイティブのターミナルコピー＆ペースト（`Cmd/Ctrl + C`, `Cmd/Ctrl + V`）
 - よく使うコマンド用の Snippets Picker
   - スニペットの保存 / 編集 / 削除
@@ -25,6 +26,7 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 - `Cmd/Ctrl + W`: 現在のワークスペースを閉じる
 - `Cmd/Ctrl + N`: 新しいペイン
 - `Cmd/Ctrl + Shift + P`: Snippets Picker を開く
+- `Cmd/Ctrl + Shift + G`: グリッド設定（`3x3` / `4x4`）を開く
 - `Cmd/Ctrl + Shift + R`: Relay ウィンドウを開く
 - `Cmd/Ctrl + F`: フォーカス中のPane内検索
 - `Cmd/Ctrl + Shift + F`: ワークスペース内の全Pane履歴を横断検索

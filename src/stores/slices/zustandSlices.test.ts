@@ -155,6 +155,21 @@ describe('panesSlice', () => {
     expect(workspace.dirty).toBe(true);
   });
 
+  it('allows up to 16 panes when pane grid size is 4x4', () => {
+    useAppStore.getState().setPaneGridSize(4);
+
+    const ids: string[] = [];
+    for (let i = 0; i < 16; i += 1) {
+      const id = useAppStore.getState().createPane('ws-1', { title: `Pane ${i + 1}` });
+      ids.push(id);
+    }
+    const overflow = useAppStore.getState().createPane('ws-1', { title: 'Overflow' });
+
+    expect(ids.every((id) => id.length > 0)).toBe(true);
+    expect(useAppStore.getState().workspaces[0].panes).toHaveLength(16);
+    expect(overflow).toBe('');
+  });
+
   it('updates pane title and keeps change in store', () => {
     const paneId = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
 

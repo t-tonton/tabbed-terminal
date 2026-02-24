@@ -1,4 +1,5 @@
 import { AppLayout } from './components/layout';
+import { GridSettingsPanel } from './features/settings';
 import { WorkspaceSearch } from './features/search';
 import { SnippetPicker } from './features/snippets';
 import { RelayPanel, useRelayStateBridge } from './features/relay';
@@ -19,6 +20,7 @@ function App() {
       </AppLayout>
       <WorkspaceSearch />
       <SnippetPicker />
+      <GridSettingsPanel />
       {!isTauriRuntime && <RelayPanel />}
     </>
   );

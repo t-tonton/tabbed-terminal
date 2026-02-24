@@ -5,6 +5,7 @@ export function IconSidebar() {
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId);
   const createPane = useAppStore((state) => state.createPane);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
+  const openGridSettings = useAppStore((state) => state.openGridSettings);
   const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
   const openRelayPanel = useAppStore((state) => state.openRelayPanel);
   const activeWorkspace = useActiveWorkspace();
@@ -60,6 +61,13 @@ export function IconSidebar() {
         label="Snippets"
         shortcut="⌘⇧P"
         onClick={openSnippetPicker}
+      />
+
+      <SidebarButton
+        icon={<GridIcon />}
+        label="Grid Settings"
+        shortcut="⌘⇧G"
+        onClick={openGridSettings}
       />
 
       <SidebarButton
@@ -150,6 +158,17 @@ function RelayIcon() {
       <path d="M8 12L6 10m2 2l-2 2" />
       <circle cx="3" cy="6" r="1" fill="currentColor" stroke="none" />
       <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="4" height="4" rx="0.6" />
+      <rect x="11" y="3" width="4" height="4" rx="0.6" />
+      <rect x="3" y="11" width="4" height="4" rx="0.6" />
+      <rect x="11" y="11" width="4" height="4" rx="0.6" />
     </svg>
   );
 }

@@ -20,8 +20,6 @@ import { Pane } from '../../panes/components/Pane';
 import { useAppStore, useActiveWorkspace } from '../../../stores';
 import type { Pane as PaneType, PaneLayout } from '../../../types';
 
-const GRID_COLS = 3;
-const GRID_ROWS = 3;
 const GAP = 8;
 const EMPTY_PANES: PaneType[] = [];
 
@@ -266,9 +264,11 @@ function layoutsOverlap(a: PaneLayout, b: PaneLayout): boolean {
 export function WorkspaceContainer() {
   const activeWorkspace = useActiveWorkspace();
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId);
+  const paneGridSize = useAppStore((state) => state.paneGridSize);
   const panes = activeWorkspace?.panes ?? EMPTY_PANES;
-  // Max 9 panes (3x3)
-  const visiblePanes = panes.slice(0, 9);
+  const GRID_COLS = paneGridSize;
+  const GRID_ROWS = paneGridSize;
+  const visiblePanes = panes.slice(0, GRID_COLS * GRID_ROWS);
   const [draggingPaneId, setDraggingPaneId] = useState<string | null>(null);
   const [dragOverCell, setDragOverCell] = useState<{ x: number; y: number } | null>(null);
 
@@ -304,7 +304,7 @@ export function WorkspaceContainer() {
       }
     }
     return empty;
-  }, [visiblePanes]);
+  }, [visiblePanes, GRID_COLS, GRID_ROWS]);
 
   const dragPreview = useMemo(() => {
     if (!draggingPaneId || !dragOverCell) return null;
@@ -320,7 +320,7 @@ export function WorkspaceContainer() {
       ...previewLayout,
       isValid,
     };
-  }, [dragOverCell, draggingPaneId, panes]);
+  }, [dragOverCell, draggingPaneId, panes, GRID_COLS, GRID_ROWS]);
 
   const handleResizeStart = useCallback((paneId: string, direction: 'left' | 'right' | 'top' | 'bottom' | 'corner') => {
     if (!activeWorkspaceId) return;
@@ -556,7 +556,7 @@ export function WorkspaceContainer() {
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [activeWorkspaceId]);
+  }, [activeWorkspaceId, GRID_COLS, GRID_ROWS]);
 
   // Empty states
   if (!activeWorkspace || !activeWorkspaceId) {
