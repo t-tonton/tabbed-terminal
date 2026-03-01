@@ -1,12 +1,16 @@
 import type { ReactNode } from 'react';
 import { IconSidebar } from './IconSidebar';
 import { TabBar } from './TabBar';
+import { FileTreeDrawer } from '../../features/tree';
+import { useAppStore } from '../../stores';
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const isFileTreeOpen = useAppStore((state) => state.isFileTreeOpen);
+
   return (
     <div
       style={{
@@ -30,6 +34,8 @@ export function AppLayout({ children }: AppLayoutProps) {
       >
         {/* Left: Icon sidebar */}
         <IconSidebar />
+
+        {isFileTreeOpen && <FileTreeDrawer />}
 
         {/* Main area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>

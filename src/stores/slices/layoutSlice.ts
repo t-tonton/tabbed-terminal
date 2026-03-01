@@ -8,6 +8,7 @@ export interface LayoutSlice {
   isNewPaneModalOpen: boolean;
   isPaneSwitcherOpen: boolean;
   isSnippetPickerOpen: boolean;
+  isFileTreeOpen: boolean;
   isGridSettingsOpen: boolean;
   isWorkspaceSearchOpen: boolean;
   isRelayPanelOpen: boolean;
@@ -26,6 +27,9 @@ export interface LayoutSlice {
   closePaneEditor: () => void;
   openSnippetPicker: () => void;
   closeSnippetPicker: () => void;
+  openFileTree: () => void;
+  closeFileTree: () => void;
+  toggleFileTree: () => void;
   openGridSettings: () => void;
   closeGridSettings: () => void;
   openWorkspaceSearch: () => void;
@@ -45,6 +49,7 @@ export const createLayoutSlice: StateCreator<
   isNewPaneModalOpen: false,
   isPaneSwitcherOpen: false,
   isSnippetPickerOpen: false,
+  isFileTreeOpen: false,
   isGridSettingsOpen: false,
   isWorkspaceSearchOpen: false,
   isRelayPanelOpen: false,
@@ -96,6 +101,18 @@ export const createLayoutSlice: StateCreator<
 
   closeSnippetPicker: () => {
     set({ isSnippetPickerOpen: false });
+  },
+
+  openFileTree: () => {
+    set({ isFileTreeOpen: true });
+  },
+
+  closeFileTree: () => {
+    set({ isFileTreeOpen: false });
+  },
+
+  toggleFileTree: () => {
+    set((state) => ({ isFileTreeOpen: !state.isFileTreeOpen }));
   },
 
   openGridSettings: () => {

@@ -25,6 +25,7 @@ beforeEach(() => {
     sendingPaneIds: new Set<string>(),
     terminalHistoryByPane: {},
     terminalRawHistoryByPane: {},
+    paneCurrentDirectoryById: {},
     unreadCountByPane: {},
     managedPaneIdsByParent: {},
     paneDispatchLogsByParent: {},
@@ -71,6 +72,7 @@ describe('workspacesSlice', () => {
     useAppStore.setState({
       terminalHistoryByPane: { [paneId]: 'abc' },
       terminalRawHistoryByPane: { [paneId]: 'abc' },
+      paneCurrentDirectoryById: { [paneId]: '/tmp/demo' },
       unreadCountByPane: { [paneId]: 3 },
       managedPaneIdsByParent: { [paneId]: ['other-pane'] },
       paneDispatchLogsByParent: {
@@ -94,6 +96,7 @@ describe('workspacesSlice', () => {
     expect(nextState.workspaces).toHaveLength(1);
     expect(nextState.terminalHistoryByPane[paneId]).toBeUndefined();
     expect(nextState.terminalRawHistoryByPane[paneId]).toBeUndefined();
+    expect(nextState.paneCurrentDirectoryById[paneId]).toBeUndefined();
     expect(nextState.unreadCountByPane[paneId]).toBeUndefined();
     expect(nextState.managedPaneIdsByParent[paneId]).toBeUndefined();
     expect(nextState.paneDispatchLogsByParent[paneId]).toBeUndefined();
@@ -137,6 +140,7 @@ describe('panesSlice', () => {
       activeWorkspaceId: 'ws-1',
       terminalHistoryByPane: {},
       terminalRawHistoryByPane: {},
+      paneCurrentDirectoryById: {},
       unreadCountByPane: {},
       managedPaneIdsByParent: {},
       paneDispatchLogsByParent: {},
@@ -222,6 +226,15 @@ describe('panesSlice', () => {
     useAppStore.getState().deletePane('ws-1', paneId);
 
     expect(useAppStore.getState().terminalHistoryByPane[paneId]).toBeUndefined();
+  });
+
+  it('updates pane current directory from OSC 7 sequence', () => {
+    const paneId = useAppStore.getState().createPane('ws-1', { title: 'Pane 1' });
+    const osc7 = '\u001b]7;file://localhost/Users/kzy/work/dev/tmp\u0007';
+
+    useAppStore.getState().appendTerminalOutput(paneId, osc7);
+
+    expect(useAppStore.getState().paneCurrentDirectoryById[paneId]).toBe('/Users/kzy/work/dev/tmp');
   });
 
   it('stores managed child pane ids and excludes self', () => {

@@ -19,6 +19,10 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 - Relay コマンド送信ウィンドウ
   - Tauri 実行時は独立ウィンドウとして表示
   - アクティブPaneから他Paneへコマンド送信（1Pane時は自Paneに送信）
+- 左側のファイルツリードロワー
+  - サイドバーまたはショートカットで開閉
+  - アクティブPaneのディレクトリに追従（Terminal OSC 7）
+  - 深さ（`2-5`）を指定して再読込
 
 ## ショートカット
 
@@ -26,6 +30,7 @@ Tauri + React で構築したデスクトップ向けターミナルワークス
 - `Cmd/Ctrl + W`: 現在のワークスペースを閉じる
 - `Cmd/Ctrl + N`: 新しいペイン
 - `Cmd/Ctrl + Shift + P`: Snippets Picker を開く
+- `Cmd/Ctrl + Shift + E`: ファイルツリードロワーを開閉
 - `Cmd/Ctrl + Shift + G`: グリッド設定（`3x3` / `4x4`）を開く
 - `Cmd/Ctrl + Shift + R`: Relay ウィンドウを開く
 - `Cmd/Ctrl + F`: フォーカス中のPane内検索

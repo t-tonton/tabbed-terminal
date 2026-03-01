@@ -13,6 +13,7 @@ export function useKeyboardShortcuts() {
   const zoomOut = useAppStore((state) => state.zoomOut);
   const resetZoom = useAppStore((state) => state.resetZoom);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
+  const toggleFileTree = useAppStore((state) => state.toggleFileTree);
   const openGridSettings = useAppStore((state) => state.openGridSettings);
   const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
   const openRelayPanel = useAppStore((state) => state.openRelayPanel);
@@ -39,6 +40,13 @@ export function useKeyboardShortcuts() {
       if (isMod && e.shiftKey && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         openSnippetPicker();
+        return;
+      }
+
+      // Cmd/Ctrl+Shift+E: Toggle file tree drawer
+      if (isMod && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        toggleFileTree();
         return;
       }
 
@@ -172,6 +180,7 @@ export function useKeyboardShortcuts() {
     zoomOut,
     resetZoom,
     openSnippetPicker,
+    toggleFileTree,
     openGridSettings,
     openWorkspaceSearch,
     openRelayPanel,

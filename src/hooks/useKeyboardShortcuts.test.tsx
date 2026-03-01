@@ -30,6 +30,7 @@ describe('useKeyboardShortcuts', () => {
       workspaces: [createWorkspace()],
       activeWorkspaceId: 'ws-1',
       isWorkspaceSearchOpen: false,
+      isFileTreeOpen: false,
       isGridSettingsOpen: false,
     });
   });
@@ -129,5 +130,31 @@ describe('useKeyboardShortcuts', () => {
 
     expect(event.defaultPrevented).toBe(true);
     expect(useAppStore.getState().isGridSettingsOpen).toBe(true);
+  });
+
+  it('toggles file tree on Cmd/Ctrl+Shift+E', () => {
+    render(<KeyboardShortcutHarness />);
+
+    const event = new KeyboardEvent('keydown', {
+      key: 'e',
+      metaKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(true);
+    expect(useAppStore.getState().isFileTreeOpen).toBe(true);
+
+    const second = new KeyboardEvent('keydown', {
+      key: 'e',
+      ctrlKey: true,
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(second);
+    expect(second.defaultPrevented).toBe(true);
+    expect(useAppStore.getState().isFileTreeOpen).toBe(false);
   });
 });

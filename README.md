@@ -19,6 +19,10 @@ A desktop terminal workspace app built with Tauri + React.
 - Relay command sender window
   - Open as a separate desktop window in Tauri
   - Sends command from active pane to other panes (or current pane in single-pane mode)
+- Left file tree drawer
+  - Toggle open/close from sidebar or shortcut
+  - Follows active pane directory (from terminal OSC 7)
+  - Refresh with selectable depth (`2-5`)
 
 ## Demo
 
@@ -39,6 +43,7 @@ The generated file is saved to `docs/demo/demo.webm`.
 - `Cmd/Ctrl + W`: Close current workspace
 - `Cmd/Ctrl + N`: New pane
 - `Cmd/Ctrl + Shift + P`: Open snippets picker
+- `Cmd/Ctrl + Shift + E`: Toggle file tree drawer
 - `Cmd/Ctrl + Shift + G`: Open grid settings (`3x3` / `4x4`)
 - `Cmd/Ctrl + Shift + R`: Open relay window
 - `Cmd/Ctrl + F`: Find in focused pane

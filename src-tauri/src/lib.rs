@@ -1,3 +1,4 @@
+mod file_tree;
 mod pty;
 
 use pty::PtyManager;
@@ -63,6 +64,7 @@ pub fn run() {
             pty::pty_write,
             pty::pty_resize,
             pty::pty_kill,
+            file_tree::list_file_tree,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

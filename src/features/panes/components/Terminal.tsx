@@ -23,6 +23,21 @@ interface TerminalMatch {
   length: number;
 }
 
+const SHELL_INTEGRATION_SNIPPET = [
+  '__tt_emit_cwd() { printf "\\033]7;file://%s%s\\007" "${HOSTNAME:-localhost}" "$PWD"; }',
+  'if [ -n "$ZSH_VERSION" ]; then',
+  '  autoload -Uz add-zsh-hook >/dev/null 2>&1',
+  '  add-zsh-hook precmd __tt_emit_cwd >/dev/null 2>&1 || true',
+  'elif [ -n "$BASH_VERSION" ]; then',
+  '  case ";$PROMPT_COMMAND;" in',
+  '    *";__tt_emit_cwd;"*) ;;',
+  '    *) PROMPT_COMMAND="__tt_emit_cwd${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;;',
+  '  esac',
+  'fi',
+  '__tt_emit_cwd',
+  '',
+].join('\n');
+
 export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<XTerm | null>(null);
@@ -240,6 +255,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
         }
 
         ptySpawnedRef.current = true;
+        invoke('pty_write', { id: paneId, data: SHELL_INTEGRATION_SNIPPET }).catch(() => {});
 
         terminal.onData((data) => {
           if (aborted) return;

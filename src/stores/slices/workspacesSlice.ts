@@ -96,6 +96,13 @@ export const createWorkspacesSlice: StateCreator<
         }
       }
 
+      const nextPaneCurrentDirectoryById: Record<string, string> = {};
+      for (const [paneId, currentDirectory] of Object.entries(state.paneCurrentDirectoryById)) {
+        if (!removedPaneIds.has(paneId)) {
+          nextPaneCurrentDirectoryById[paneId] = currentDirectory;
+        }
+      }
+
       const nextUnreadCountByPane: Record<string, number> = {};
       for (const [paneId, unread] of Object.entries(state.unreadCountByPane)) {
         if (!removedPaneIds.has(paneId)) {
@@ -137,6 +144,7 @@ export const createWorkspacesSlice: StateCreator<
         focusedPaneId: nextFocusedPaneId,
         terminalHistoryByPane: nextTerminalHistoryByPane,
         terminalRawHistoryByPane: nextTerminalRawHistoryByPane,
+        paneCurrentDirectoryById: nextPaneCurrentDirectoryById,
         unreadCountByPane: nextUnreadCountByPane,
         managedPaneIdsByParent: nextManagedPaneIdsByParent,
         paneDispatchLogsByParent: nextPaneDispatchLogsByParent,

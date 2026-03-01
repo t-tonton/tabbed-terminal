@@ -5,6 +5,58 @@ import type { AppStore } from '../appStore';
 
 const TERMINAL_HISTORY_LIMIT = 240000;
 const ORCHESTRATION_LOG_LIMIT = 200;
+function decodeOsc7Directory(payload: string): string | null {
+  const value = payload.trim();
+  if (!value) return null;
+
+  if (value.startsWith('file://')) {
+    try {
+      const parsed = new URL(value);
+      const decoded = decodeURIComponent(parsed.pathname || '');
+      if (!decoded) return null;
+      if (/^\/[A-Za-z]:\//.test(decoded)) return decoded.slice(1);
+      return decoded;
+    } catch {
+      return null;
+    }
+  }
+
+  if (value.startsWith('/')) {
+    return value;
+  }
+
+  return null;
+}
+
+function extractLastOsc7Directory(chunk: string): string | null {
+  let lastDirectory: string | null = null;
+  let cursor = 0;
+
+  while (cursor < chunk.length) {
+    const oscStart = chunk.indexOf('\u001b]', cursor);
+    if (oscStart === -1) break;
+    const semicolonIndex = chunk.indexOf(';', oscStart + 2);
+    if (semicolonIndex === -1) break;
+    const command = chunk.slice(oscStart + 2, semicolonIndex).trim();
+
+    let terminatorIndex = chunk.indexOf('\u0007', semicolonIndex + 1);
+    const stIndex = chunk.indexOf('\u001b\\', semicolonIndex + 1);
+    if (terminatorIndex === -1 || (stIndex !== -1 && stIndex < terminatorIndex)) {
+      terminatorIndex = stIndex;
+    }
+    if (terminatorIndex === -1) break;
+
+    if (command === '7') {
+      const payload = chunk.slice(semicolonIndex + 1, terminatorIndex);
+      const decoded = decodeOsc7Directory(payload);
+      if (decoded) lastDirectory = decoded;
+    }
+
+    cursor = terminatorIndex + 1;
+  }
+
+  return lastDirectory;
+}
 
 export interface PaneCommandDispatchLog {
   id: string;
@@ -66,6 +118,7 @@ export interface PanesSlice {
   sendingPaneIds: Set<string>;
   terminalHistoryByPane: Record<string, string>;
   terminalRawHistoryByPane: Record<string, string>;
+  paneCurrentDirectoryById: Record<string, string>;
   unreadCountByPane: Record<string, number>;
   managedPaneIdsByParent: Record<string, string[]>;
   paneDispatchLogsByParent: Record<string, PaneCommandDispatchLog[]>;
@@ -112,6 +165,7 @@ export const createPanesSlice: StateCreator<
   sendingPaneIds: new Set(),
   terminalHistoryByPane: {},
   terminalRawHistoryByPane: {},
+  paneCurrentDirectoryById: {},
   unreadCountByPane: {},
   managedPaneIdsByParent: {},
   paneDispatchLogsByParent: {},
@@ -181,11 +235,13 @@ export const createPanesSlice: StateCreator<
     set((state) => {
       const nextHistory = { ...state.terminalHistoryByPane };
       const nextRawHistory = { ...state.terminalRawHistoryByPane };
+      const nextDirectoryByPane = { ...state.paneCurrentDirectoryById };
       const nextUnread = { ...state.unreadCountByPane };
       const nextManaged = { ...state.managedPaneIdsByParent };
       const nextLogs = { ...state.paneDispatchLogsByParent };
       delete nextHistory[paneId];
       delete nextRawHistory[paneId];
+      delete nextDirectoryByPane[paneId];
       delete nextUnread[paneId];
       delete nextManaged[paneId];
       delete nextLogs[paneId];
@@ -205,6 +261,7 @@ export const createPanesSlice: StateCreator<
         focusedPaneId: state.focusedPaneId === paneId ? null : state.focusedPaneId,
         terminalHistoryByPane: nextHistory,
         terminalRawHistoryByPane: nextRawHistory,
+        paneCurrentDirectoryById: nextDirectoryByPane,
         unreadCountByPane: nextUnread,
         managedPaneIdsByParent: nextManaged,
         paneDispatchLogsByParent: nextLogs,
@@ -379,6 +436,14 @@ export const createPanesSlice: StateCreator<
         || !shouldIncrementUnread
         ? (state.unreadCountByPane[paneId] ?? 0)
         : 1;
+      const detectedDirectory = extractLastOsc7Directory(chunk);
+      const nextDirectoryByPane =
+        detectedDirectory && detectedDirectory !== state.paneCurrentDirectoryById[paneId]
+          ? {
+              ...state.paneCurrentDirectoryById,
+              [paneId]: detectedDirectory,
+            }
+          : state.paneCurrentDirectoryById;
 
       return {
         terminalHistoryByPane: {
@@ -393,6 +458,7 @@ export const createPanesSlice: StateCreator<
           ...state.unreadCountByPane,
           [paneId]: nextUnreadCount,
         },
+        paneCurrentDirectoryById: nextDirectoryByPane,
       };
     });
   },

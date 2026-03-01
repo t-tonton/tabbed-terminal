@@ -5,6 +5,8 @@ export function IconSidebar() {
   const activeWorkspaceId = useAppStore((state) => state.activeWorkspaceId);
   const createPane = useAppStore((state) => state.createPane);
   const openSnippetPicker = useAppStore((state) => state.openSnippetPicker);
+  const toggleFileTree = useAppStore((state) => state.toggleFileTree);
+  const isFileTreeOpen = useAppStore((state) => state.isFileTreeOpen);
   const openGridSettings = useAppStore((state) => state.openGridSettings);
   const openWorkspaceSearch = useAppStore((state) => state.openWorkspaceSearch);
   const openRelayPanel = useAppStore((state) => state.openRelayPanel);
@@ -61,6 +63,14 @@ export function IconSidebar() {
         label="Snippets"
         shortcut="⌘⇧P"
         onClick={openSnippetPicker}
+      />
+
+      <SidebarButton
+        icon={<FileTreeIcon />}
+        label="File Tree"
+        shortcut="⌘⇧E"
+        onClick={toggleFileTree}
+        active={isFileTreeOpen}
       />
 
       <SidebarButton
@@ -169,6 +179,15 @@ function GridIcon() {
       <rect x="11" y="3" width="4" height="4" rx="0.6" />
       <rect x="3" y="11" width="4" height="4" rx="0.6" />
       <rect x="11" y="11" width="4" height="4" rx="0.6" />
+    </svg>
+  );
+}
+
+function FileTreeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 5.5A1.5 1.5 0 0 1 4 4h3l1.3 1.5H14a1.5 1.5 0 0 1 1.5 1.5v5A1.5 1.5 0 0 1 14 13.5H4A1.5 1.5 0 0 1 2.5 12V5.5Z" />
+      <path d="M2.5 7h13" />
     </svg>
   );
 }
