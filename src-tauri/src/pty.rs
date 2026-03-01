@@ -221,8 +221,8 @@ impl PtyManager {
         if cfg!(target_os = "windows") {
             vec![]
         } else {
-            // No args - let shell start normally
-            vec![]
+            // Start as login shell so PATH from shell profile (e.g. ~/.zprofile) is loaded.
+            vec!["-l".to_string()]
         }
     }
 }
