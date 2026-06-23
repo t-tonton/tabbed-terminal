@@ -14,7 +14,7 @@ fn append_lifecycle_log(message: &str) {
     if let Ok(mut file) = OpenOptions::new()
         .create(true)
         .append(true)
-        .open("/tmp/tabbed-terminal-lifecycle.log")
+        .open(std::env::temp_dir().join("tabbed-terminal-lifecycle.log"))
     {
         let _ = file.write_all(line.as_bytes());
     }
@@ -42,7 +42,7 @@ fn install_panic_hook() {
         if let Ok(mut file) = OpenOptions::new()
             .create(true)
             .append(true)
-            .open("/tmp/tabbed-terminal-panic.log")
+            .open(std::env::temp_dir().join("tabbed-terminal-panic.log"))
         {
             let _ = file.write_all(body.as_bytes());
         }
