@@ -48,14 +48,17 @@ impl PtyManager {
         for arg in Self::get_shell_args() {
             cmd.arg(arg);
         }
-        cmd.env("TERM", "xterm-256color");
         // Disable zsh session management (causes early exit)
         cmd.env("SHELL_SESSIONS_DISABLE", "1");
-        // Explicit UTF-8 locale to reduce encoding mismatches.
-        cmd.env("LANG", "en_US.UTF-8");
-        cmd.env("LC_ALL", "en_US.UTF-8");
-        // Set HOME directory
-        if let Ok(home) = std::env::var("HOME") {
+        // These are Unix shell/terminal conventions; PowerShell/ConPTY ignore them.
+        if !cfg!(target_os = "windows") {
+            cmd.env("TERM", "xterm-256color");
+            // Explicit UTF-8 locale to reduce encoding mismatches.
+            cmd.env("LANG", "en_US.UTF-8");
+            cmd.env("LC_ALL", "en_US.UTF-8");
+        }
+        // Set working directory to the user's home (HOME on Unix, USERPROFILE on Windows).
+        if let Some(home) = Self::home_dir() {
             cmd.cwd(&home);
             cmd.env("HOME", &home);
         }
@@ -63,8 +66,8 @@ impl PtyManager {
         if let Ok(path) = std::env::var("PATH") {
             cmd.env("PATH", path);
         }
-        // Set user
-        if let Ok(user) = std::env::var("USER") {
+        // Set user (USER on Unix, USERNAME on Windows)
+        if let Ok(user) = std::env::var("USER").or_else(|_| std::env::var("USERNAME")) {
             cmd.env("USER", user);
         }
 
@@ -207,6 +210,16 @@ impl PtyManager {
             .map_err(|_| "PTY manager lock poisoned".to_string())?;
         instances.remove(id);
         Ok(())
+    }
+
+    fn home_dir() -> Option<String> {
+        if cfg!(target_os = "windows") {
+            std::env::var("USERPROFILE")
+                .or_else(|_| std::env::var("HOME"))
+                .ok()
+        } else {
+            std::env::var("HOME").ok()
+        }
     }
 
     fn get_shell() -> String {

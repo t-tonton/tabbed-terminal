@@ -170,7 +170,8 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
     const terminal = new XTerm({
       cursorBlink: true,
       fontSize: currentFontSize,
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontFamily:
+        'Menlo, Monaco, "Cascadia Code", "Cascadia Mono", Consolas, "DejaVu Sans Mono", "Courier New", monospace',
       scrollback: 10000,
       scrollOnUserInput: true,
       theme: {
