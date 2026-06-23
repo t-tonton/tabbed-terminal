@@ -2,8 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { useAppStore } from '../../../stores';
+import {
+  ensurePtyListener,
+  registerLiveTerminal,
+  unregisterLiveTerminal,
+} from '../terminalOutputCollector';
 import '@xterm/xterm/css/xterm.css';
 
 interface TerminalProps {
@@ -29,7 +33,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
   const fitAddonRef = useRef<FitAddon | null>(null);
   const ptySpawnedRef = useRef(false);
   const terminalFontSize = useAppStore((state) => state.terminalFontSize);
-  const appendTerminalOutput = useAppStore((state) => state.appendTerminalOutput);
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,8 +166,6 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
     if (!containerRef.current || terminalRef.current) return;
 
     let aborted = false;
-    let unlistenOutput: UnlistenFn | null = null;
-    let unlistenExit: UnlistenFn | null = null;
 
     const currentFontSize = useAppStore.getState().terminalFontSize;
     const terminal = new XTerm({
@@ -191,6 +192,9 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       terminal.write(savedHistory);
       terminal.scrollToBottom();
     }
+    // Attach synchronously, immediately after replaying the stored history, so
+    // no chunk arrives between the snapshot read above and live rendering.
+    registerLiveTerminal(paneId, terminal);
 
     terminalRef.current = terminal;
     fitAddonRef.current = fitAddon;
@@ -209,28 +213,11 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       if (ptySpawnedRef.current || aborted) return;
 
       try {
-        unlistenOutput = await listen<string>(`pty-output-${paneId}`, (event) => {
-          if (!aborted) {
-            terminal.write(event.payload);
-            terminal.scrollToBottom();
-            appendTerminalOutput(paneId, event.payload);
-          }
-        });
+        // Ensure the persistent collector listener is ready before spawning so
+        // the first bytes of shell output are captured even on a fresh pane.
+        await ensurePtyListener(paneId);
 
-        if (aborted) {
-          unlistenOutput?.();
-          return;
-        }
-
-        unlistenExit = await listen(`pty-exit-${paneId}`, () => {
-          if (!aborted) terminal.writeln('\r\n\x1b[1;31m[Process exited]\x1b[0m');
-        });
-
-        if (aborted) {
-          unlistenOutput?.();
-          unlistenExit?.();
-          return;
-        }
+        if (aborted) return;
 
         await invoke('pty_spawn', { id: paneId });
 
@@ -270,8 +257,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
     return () => {
       aborted = true;
       resizeObserver.disconnect();
-      unlistenOutput?.();
-      unlistenExit?.();
+      unregisterLiveTerminal(paneId, terminal);
       const paneStillExists = useAppStore
         .getState()
         .workspaces.some((workspace) => workspace.panes.some((pane) => pane.id === paneId));
@@ -282,7 +268,7 @@ export function Terminal({ paneId, isFocused, onFocus }: TerminalProps) {
       terminal.dispose();
       terminalRef.current = null;
     };
-  }, [appendTerminalOutput, paneId, syncTerminalSize]);
+  }, [paneId, syncTerminalSize]);
 
   useEffect(() => {
     if (isFocused && terminalRef.current) {
