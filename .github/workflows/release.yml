@@ -50,9 +50,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: tauri-bundles-macos
-          path: |
-            src-tauri/target/release/bundle/**
-            !src-tauri/target/release/bundle/**/*.dmg
+          path: src-tauri/target/release/bundle/**
 
       - name: Upload release artifacts (Windows)
         if: runner.os == 'Windows'
@@ -67,14 +65,31 @@ jobs:
         run: |
           set -euo pipefail
           cd src-tauri/target/release/bundle
-          find . -type f \( \
-            -name "*.app.tar.gz" -o \
-            -name "*.app.tar.gz.sig" -o \
-            -name "*.tar.gz" -o \
-            -name "*.msi" -o \
-            -name "*.exe" -o \
-            -name "*.sig" \
-          \) -print0 | sort -z | xargs -0 shasum -a 256 > "SHA256SUMS-${RUNNER_OS}.txt"
+          # Release artifacts to checksum (filenames may contain spaces).
+          find_artifacts() {
+            find . -type f \( \
+              -name "*.app.tar.gz" -o \
+              -name "*.app.tar.gz.sig" -o \
+              -name "*.tar.gz" -o \
+              -name "*.msi" -o \
+              -name "*.exe" -o \
+              -name "*.dmg" -o \
+              -name "*.sig" \
+            \) "$@"
+          }
+          # Guard against an empty result so we never publish an empty
+          # SHA256SUMS file (GitHub rejects 0-byte assets).
+          if [ -z "$(find_artifacts)" ]; then
+            echo "No bundle artifacts to checksum on ${RUNNER_OS}; skipping."
+            exit 0
+          fi
+          # shasum is absent on Windows runners; prefer sha256sum when available.
+          if command -v sha256sum >/dev/null 2>&1; then
+            hash_cmd="sha256sum"
+          else
+            hash_cmd="shasum -a 256"
+          fi
+          find_artifacts -print0 | sort -z | xargs -0 $hash_cmd > "SHA256SUMS-${RUNNER_OS}.txt"
 
       - name: Publish GitHub Release assets
         if: startsWith(github.ref, 'refs/tags/')
@@ -87,5 +102,6 @@ jobs:
             src-tauri/target/release/bundle/**/*.tar.gz
             src-tauri/target/release/bundle/**/*.msi
             src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.dmg
             src-tauri/target/release/bundle/**/*.sig
             src-tauri/target/release/bundle/SHA256SUMS-*.txt
